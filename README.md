@@ -2,7 +2,31 @@
 
 **LiveGame Studio** là nền tảng **Windows Desktop (Local-first)** vận hành nhiều mini game tương tác trực tiếp trên **TikTok LIVE** thông qua kiến trúc **Modular Monolith** kết hợp **Game Plugin Architecture**.
 
-> **Trạng thái hiện tại:** `GD00 – Project Design & Initialization` (branch `design/gd00`). Chưa triển khai source code runtime (bắt đầu từ `GD01`).
+> **Trạng thái hiện tại:** `GD01 – Platform Foundation` (branch `integration/gd01`). Backend, Desktop và procedural WebGL preview đã triển khai; chờ review độc lập để chốt acceptance. Tu Tiên Online chưa có gameplay.
+
+## Chạy foundation trên Windows
+
+Yêu cầu Python 3.11, Node.js và npm. Chạy PowerShell tại thư mục repository:
+
+```powershell
+.\scripts\check_environment.ps1
+.\scripts\setup_dev.ps1 -WithBrowser
+.\scripts\start_dev.ps1
+```
+
+Desktop tự khởi chạy backend `127.0.0.1:8765` và runtime `127.0.0.1:5173`. Mở **Live Studio** để xem Foundation Demo 9:16. Đóng cửa sổ để dừng các process do Desktop sở hữu, hoặc chạy `.\scripts\stop_dev.ps1` từ terminal khác. Port đang được dùng sẽ báo conflict, không tự chiếm hoặc kill process khác.
+
+```powershell
+.\scripts\run_tests.ps1 -Browser -Embedded
+```
+
+Lệnh kiểm thử gồm pytest, Ruff, build TypeScript/Vite, Vitest, browser WebGL E2E, GUI/QWebEngine thật và PowerShell start/stop smoke. `-WithBrowser` cài Chromium dành cho Playwright; GUI smoke cần phiên Windows Desktop đang hoạt động.
+
+Có thể sao chép `.env.example` thành `.env` để đổi cấu hình `LGS_*`. Path tương đối được resolve từ repository, không phụ thuộc working directory. `.env`, logs, database, `.venv`, `node_modules`, `runtime` và build output được Git bỏ qua. Dependency đã kiểm chứng nằm trong `requirements.lock` và `frontend/package-lock.json`.
+
+Chạy riêng từng lớp bằng `start_backend.ps1`, `start_runtime.ps1`, rồi `start_desktop.ps1 -ConnectBackend -ConnectRuntime`; Desktop không dừng các service được kết nối theo chế độ này. Service chạy riêng dừng bằng Ctrl+C tại terminal của nó.
+
+API công khai: [health](http://127.0.0.1:8765/api/v1/health). `/dev/admin-ping` chỉ tồn tại trong environment `development`, yêu cầu admin session token nội bộ; không phát hành token ra URL, file hay frontend. GD01 chưa triển khai API quản trị production hoặc WebSocket. Xem [báo cáo bàn giao](docs/GD01_DELIVERY_REPORT.md) và [môi trường](docs/GD01_ENVIRONMENT_REPORT.md).
 
 ---
 

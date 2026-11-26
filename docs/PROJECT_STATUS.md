@@ -2,8 +2,11 @@
 
 **Ngày cập nhật:** 2026-11-26  
 **Workspace chính thức:** `D:\Tiktok Mini Game`  
-**Branch hiện tại:** `design/gd00`  
-**Giai đoạn hiện tại:** `GD00 – Project Design & Initialization`  
+**Branch hiện tại:** `integration/gd01`
+
+**Giai đoạn hiện tại:** `GD01 – Platform Foundation`
+
+**Trạng thái tổng thể GD01:** `PARTIAL — IMPLEMENTATION VERIFIED, INDEPENDENT REVIEW NOT RUN`. 37 automated tests PASS; real Desktop/QWebEngine, PowerShell start/stop và kiểm tra không orphan PASS. Chờ review độc lập trước khi chốt phase gate; xem `docs/GD01_DELIVERY_REPORT.md`.
 **Trạng thái tổng thể GD00:** `PASS — READY FOR GD01 APPROVAL (GD00 + GD00-FIX01 + GD00-FIX02 COMPLETE)` *(toàn bộ 6 HIGH, 4 MEDIUM và 1 LOW design findings đã được kiểm chứng và giải quyết tại `docs/GD00_INDEPENDENT_REVIEW.md` và `docs/GD00_FIX02_REPORT.md`)*
 
 ---
@@ -13,7 +16,7 @@
 | Giai đoạn | Tên | Trạng thái | Ghi chú |
 |---|---|---|---|
 | **GD00** | Project Design & Initialization (`+ FIX01 + FIX02`) | **COMPLETED (Design Review Findings Resolved)** | Toàn bộ 24 tài liệu nền tảng + `GD01_SCOPE.md` + `GD00_INDEPENDENT_REVIEW.md` + `GD00_FIX02_REPORT.md` trên `design/gd00` |
-| GD01 | Platform Foundation | `NOT STARTED` | Chờ lệnh duyệt khởi chạy GD01; phạm vi đóng khung tại `docs/platform/GD01_SCOPE.md` |
+| GD01 | Platform Foundation | `IMPLEMENTED / REVIEW PENDING` | 31 pytest + 3 Vitest + 3 Playwright PASS; GUI/embedded WebGL/owned shutdown PASS; nhánh `integration/gd01` |
 | GD02 | Database & Application Services | `NOT STARTED` | Phụ thuộc GD01 |
 | GD03 | Desktop Shell & Game Master UI | `NOT STARTED` | Phụ thuộc GD01–GD02 |
 | GD04 | Event Gateway & Simulator | `NOT STARTED` | Phụ thuộc GD02 |
@@ -46,5 +49,6 @@
 
 ## 4. Bước tiếp theo (Next Actions)
 
-1. Chủ dự án phê duyệt kết quả **GD00 + GD00-FIX01 + GD00-FIX02** (xem `docs/GD00_INDEPENDENT_REVIEW.md` và `docs/GD00_FIX02_REPORT.md`).
-2. Sau khi có lệnh xác nhận rõ ràng, bắt đầu triển khai **GD01 – Platform Foundation** theo đúng phạm vi đã khóa tại `docs/platform/GD01_SCOPE.md` (nhánh `feat/gd01-foundation`).
+1. Review độc lập GD01 theo hướng dẫn tại `docs/GD01_DELIVERY_REPORT.md`, đối chiếu đúng 13 mục `GD01_SCOPE.md`; chưa bắt đầu GD02.
+2. GD00 gate: đã đọc final review `PASS / READY_FOR_GD01` tại `592db85`. Tệp final review chưa commit sau đó không còn trong workspace; chủ dự án xác nhận trong chat dùng kết luận PASS đã đọc và ghi rõ ở báo cáo. Không tái tạo hoặc tự nhận là tác giả của review gốc.
+3. Không tự push hoặc merge. Nhánh bàn giao theo yêu cầu task là `integration/gd01`.

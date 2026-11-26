@@ -4,6 +4,22 @@ Mọi thay đổi đáng chú ý của dự án được ghi nhận tại đây 
 
 ---
 
+## [0.1.0-gd01-foundation] - 2026-11-26
+
+### Added
+- Application Core, typed `LGS_*` config, UTF-8 rotating JSONL/console logging với redaction, error handling và SQLite smoke thật (WAL/FK/5000ms timeout/commit/rollback/reopen).
+- FastAPI factory, minimal public health, loopback-only CLI, Trusted Host, explicit local Origin/CORS policy; credentials phiên chỉ ở memory và development-only admin boundary smoke.
+- PySide6 Desktop shell Dark/Purple, 14 navigation entries với placeholder đúng phase, Dashboard dữ liệu thật, Settings readonly, QWebEngine Foundation Demo và process supervisor bất đồng bộ.
+- TypeScript/Vite/Three.js procedural scene 9:16, một renderer, resize/animation/disposal/WebGL error states, browser preview 1080×1920.
+- Pinned Python/frontend dependency locks, PowerShell setup/start/stop/test scripts, 37 automated tests và GUI/script integration evidence.
+- `GD01_ENVIRONMENT_REPORT.md`, `GD01_DELIVERY_REPORT.md` và screenshots thật trong `docs/evidence/gd01/`.
+
+### Verified / Scope
+- Final combined run: 31 pytest, 3 Vitest, 3 Playwright PASS; real GUI/embedded WebGL, owned tree shutdown và PowerShell start/stop PASS. Independent review NOT RUN; overall GD01 PARTIAL pending phase gate.
+- Giữ nguyên GD00 design/contracts và GDD. Không triển khai GD02 schema/services, GD05 plugin/gameplay, GD07 assets, WebSocket, TikTok hoặc OBS.
+
+---
+
 ## [0.0.3-gd00-fix02] - 2026-11-26
 
 ### Added
