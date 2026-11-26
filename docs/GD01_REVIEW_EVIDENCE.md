@@ -117,7 +117,7 @@ Runner exit **0**, không gọi Antigravity. Command arrays, working directories
 | `python scripts/verify_dev_scripts.py` | 0 | [desktop-start-stop.txt](evidence/gd01/rc1/desktop-start-stop.txt), start/stop PASS, desktop exit 0, listeners empty |
 | `python -m pip check` | 0 | [pip-check.txt](evidence/gd01/rc1/pip-check.txt), no broken requirements |
 
-Final test counts: **57 PASS, 0 FAIL, 0 SKIP, 0 NOT RUN, 0 BLOCKED trong ba automated suites**. Independent review là một mục acceptance riêng bị BLOCKED, không cộng/trộn vào số test cases. Deferred tests GD02/GD19/GD20 liệt kê riêng phía dưới. Command outputs là capture thật sau fix, đã thay user-profile prefix bằng `<USERPROFILE>`; không phải runtime app logs hoặc output dựng lại. Raw temporary pytest XML/database/app logs không commit.
+Final test counts: **57 PASS, 0 FAIL, 0 SKIP, 0 NOT RUN, 0 BLOCKED trong ba automated suites**. Independent review là một mục acceptance riêng bị BLOCKED, không cộng/trộn vào số test cases. Deferred tests GD02/GD19/GD20 liệt kê riêng phía dưới. Command outputs là capture thật sau fix, đã thay user-profile prefix bằng `<USERPROFILE>`, bỏ ANSI và chuẩn hóa trailing whitespace khi đóng gói; không thay nội dung/kết quả. Không phải runtime app logs hoặc output dựng lại. Raw temporary pytest XML/database/app logs không commit.
 
 ## API / security verification boundaries
 
