@@ -31,30 +31,30 @@
 - **Test requirements:** Cross-check liên kết tài liệu, kiểm tra bảng/schema/contract không xung đột, `git status` sạch không chứa file rác/secret.
 - **Out-of-scope requirements:** Không triển khai GD01, không chạy migration DB, không tạo production asset, không tích hợp TikTok thật.
 
-### GD01 – Platform Foundation
-- **Objective:** Dựng bộ khung chạy được đầu tiên cho Backend FastAPI, Desktop Shell PySide6 và Frontend TypeScript/Vite/Three.js 9:16.
-- **Scope:** Khởi tạo `.venv` Python + `pyproject.toml`, `core/` (Application Core, Config Manager cơ bản, Logging System với redaction, SQLite smoke), FastAPI `/api/v1/health` bind `127.0.0.1`, PySide6 Main Window Dark/Purple (Dashboard, Game Library, Asset Library, Settings + Backend Unavailable state), Vite + Three.js scene 9:16 với cleanup chuẩn.
+### GD01 – Platform Foundation *(Chi tiết ràng buộc tại `docs/platform/GD01_SCOPE.md`)*
+- **Objective:** Dựng bộ khung chạy được tối thiểu cho 3 lớp (Backend FastAPI, Desktop Shell PySide6, Frontend TypeScript/Vite/Three.js 9:16) kèm bảo mật loopback cơ bản và bộ test tự động.
+- **Scope:** Chỉ bao gồm: Environment bootstrap, Python environment (`.venv`), Application Core, Configuration, Logging (có redaction), FastAPI Foundation (loopback `127.0.0.1`, `TrustedHost`, restricted Origin / no wildcard CORS, khung local admin auth), Health endpoint (`GET /api/v1/health`), SQLite smoke test (`WAL` + `FK ON`), PySide6 Desktop Shell (Dark/Purple, trạng thái Backend Unavailable, các tab GD02+ gắn nhãn placeholder rõ ràng), TypeScript/Vite/Three.js Foundation, Procedural placeholder scene `9:16`, Automated tests và Development scripts.
 - **Dependencies:** `GD00`.
-- **Deliverables:** Code chạy cục bộ 3 lớp, script khởi chạy dev, unit/smoke tests, `docs/GD01_DELIVERY_REPORT.md`.
-- **Acceptance criteria:** Backend chỉ bind loopback; Desktop UI mở mượt không freeze, xử lý đúng trạng thái mất Backend và thoát sạch không orphan process; Three.js build sạch không lỗi console, render 9:16 và resize đúng.
-- **Test requirements:** `pytest` backend health/config/logging; `tsc --noEmit` + `vite build`; UI smoke test thực tế.
-- **Out-of-scope requirements:** Không Meshy/Tripo/AI Asset Generator, không TikTok thật, không gameplay production GAME001, không cloud/payment.
+- **Deliverables:** Code chạy cục bộ 3 lớp, `scripts/` khởi chạy & test dev, automated test suite, `docs/GD01_DELIVERY_REPORT.md`.
+- **Acceptance criteria:** Backend chỉ bind `127.0.0.1` với `TrustedHost` & no wildcard CORS; `/api/v1/health` tách biệt với privileged endpoints; SQLite smoke test đạt WAL/FK/restart; Desktop UI không freeze, xử lý đúng mất Backend, không giả mạo tính năng GD02+ và thoát sạch không orphan process; Three.js `tsc` + `vite build` sạch, render procedural 9:16, resize và `dispose()` sạch, không lỗi console.
+- **Test requirements:** `pytest` (health, config, log redaction, SQLite smoke, security loopback/TrustedHost/CORS/auth boundary); `tsc --noEmit` + `vite build`; PySide6 UI smoke test thực tế.
+- **Out-of-scope requirements:** **Không** triển khai full database schema / Alembic migrations (`GD02`); **không** triển khai Application Services (`GD02`); **không** triển khai Game Plugin Engine hoặc `cultivation_online` skeleton (`GD05`); **không** triển khai Asset Library/Importer (`GD07`); không Meshy/Tripo/AI Asset Generator, không TikTok thật, không cloud/payment.
 
 ### GD02 – Database & Application Services
-- **Objective:** Thiết lập hệ thống CSDL SQLite (WAL + FK ON), Alembic migrations cho bảng Platform và lớp Application Services + Repository pattern.
-- **Scope:** `Database Manager`, Alembic (`render_as_batch=True`), 14 bảng Platform (tối thiểu `application_settings`, `game_plugins`, `game_sessions`, `players`, `external_identities`, `player_game_profiles`, `audit_logs`), `Application Services`, `Player Persistence` cơ bản.
+- **Objective:** Thiết lập hệ thống CSDL SQLite hoàn chỉnh với cơ chế **database-wide single-writer serialization**, Alembic migrations cho 14 bảng Platform và lớp Application Services + Repository pattern.
+- **Scope:** `Database Manager` (centralized write coordinator / bounded write queue đảm bảo tối đa 1 write transaction toàn DB tại một thời điểm, WAL, FK ON, busy timeout, transaction timeout, graceful shutdown & rollback), Alembic (`render_as_batch=True`), 14 bảng Platform, `Application Services`, `Player Persistence` cơ bản, áp dụng local admin auth trên toàn bộ REST endpoints quản trị.
 - **Dependencies:** `GD01`.
-- **Deliverables:** Migration scripts đầu tiên, SQLAlchemy models, Repositories, REST CRUD sessions/players/settings.
-- **Acceptance criteria:** Dữ liệu bền vững qua restart thực tế; FK và unique constraints hoạt động; rollback nguyên tử khi lỗi; không lộ secret khi đọc settings.
-- **Test requirements:** Integration tests trên tệp SQLite thật (upgrade/downgrade Alembic, persistence qua restart, duplicate/invalid request, FK violation).
-- **Out-of-scope requirements:** Không tạo bảng gameplay riêng của GAME001, không tích hợp TikTok thật.
+- **Deliverables:** Migration scripts đầu tiên, SQLAlchemy models, centralized SQLite write coordinator, Repositories, REST CRUD sessions/players/settings có xác thực cục bộ.
+- **Acceptance criteria:** Dữ liệu bền vững qua restart thực tế; FK và unique constraints hoạt động; đồng thời đa luồng ghi nhiều player khác nhau không gây `SQLITE_BUSY` nhờ database-wide write serializer; rollback nguyên tử khi lỗi/timeout; privileged REST endpoints chặn request thiếu/sai admin token; không lộ secret khi đọc settings.
+- **Test requirements:** Integration tests trên tệp SQLite thật (upgrade/downgrade Alembic, persistence qua restart, multi-player concurrent write contention test, transaction timeout rollback, duplicate/invalid request, FK violation, auth `401/403` tests).
+- **Out-of-scope requirements:** Không tạo bảng gameplay riêng của GAME001 (`GD11+`), không triển khai Game Plugin Engine (`GD05`), không tích hợp TikTok thật.
 
 ### GD03 – Desktop Shell & Game Master UI
 - **Objective:** Hoàn thiện khung điều hướng 14 màn hình Desktop PySide6 và nền tảng Game Master UI (chưa nối gameplay production).
 - **Scope:** Sidebar 4 nhóm, Dark/Purple design tokens, trạng thái Empty/Loading/Error/Backend Offline nhất quán, WebSocket `/ws/admin`, nút Emergency Pause/Stop với hộp thoại xác nhận, khung Game Panel Extension Slot.
 - **Dependencies:** `GD01`, `GD02`.
 - **Deliverables:** Desktop Shell đầy đủ khung 14 màn hình (màn hình chưa có backend đánh dấu rõ `Sắp ra mắt`), audit log viewer cơ bản.
-- **Acceptance criteria:** Không có nút giả mạo đang hoạt động; responsive ở `1280×800` và `1920×1080`; Tiếng Việt UTF-8 hiển thị chuẩn không overlap; shutdown sạch.
+- **Acceptance criteria:** Không có nút giả mạo đang hoạt động; responsive ở `1280×800` và `1920×1080`; Tiếng Việt UTF-8 hiển thị chuẩn không overlap; `/ws/admin` xác thực `ADMIN_SESSION_TOKEN` + `Origin` và không lộ token vào logs; shutdown sạch.
 - **Test requirements:** PySide6 widget/smoke tests, manual & automated visual check resize và backend disconnect/reconnect.
 - **Out-of-scope requirements:** Không xây 3D game logic trong PySide6; không truy cập trực tiếp SQLite từ Desktop UI.
 
@@ -72,7 +72,7 @@
 - **Scope:** Manifest loader + allowlist trusted built-in plugins (`games/`), `SimulationClock` (monotonic + injectable), vòng đời plugin, error isolation/circuit breaker, skeleton `games/cultivation_online/` (`GAME001`) và 1 dummy plugin kiểm thử thứ 2.
 - **Dependencies:** `GD02`, `GD04`.
 - **Deliverables:** Plugin engine hoàn chỉnh, `games/cultivation_online/manifest.json` + skeleton, REST `/api/v1/games` và `/api/v1/sessions` lifecycle.
-- **Acceptance criteria:** Đăng ký và chạy được `dummy_test_game` song song với `cultivation_online` mà không sửa `core/` hay `modules/`; từ chối nạp plugin ngoài allowlist; `PAUSE` đóng băng `SimulationClock`.
+- **Acceptance criteria:** Đăng ký và chạy được `dummy_test_game` song song với `cultivation_online` mà không sửa `core/` hay `modules/`; từ chối nạp mọi plugin ngoài **static trusted allowlist** (kể cả nằm trong `games/`); `PAUSE` đóng băng `SimulationClock`.
 - **Test requirements:** Contract tests với ≥ 2 plugins, security test chặn dynamic path/plugin lạ, lifecycle & error-isolation tests.
 - **Out-of-scope requirements:** Không triển khai đầy đủ boss/độ kiếp của GAME001 trong GD05.
 
@@ -86,12 +86,12 @@
 - **Out-of-scope requirements:** Không dùng LLM parse chat; không triển khai chiến đấu boss.
 
 ### GD07 – Asset Library & Importer
-- **Objective:** Xây dựng hệ thống nhập, kiểm định (SHA-256, GLB header, path safety, license, LOD metadata), quản lý phiên bản và phân phát asset cục bộ.
-- **Scope:** `Asset Library`, `Asset Importer`, `Asset Validator`, `Asset Registry`, bảng `assets`/`asset_versions`/`asset_dependencies`, bộ **Placeholder Assets** chuẩn cho `GAME001` (`TT_MAP001`, `TT_CHAR001`, `TT_CHAR002`, `TT_BOSS001`), UI Asset Library / Characters / Maps / Animations.
+- **Objective:** Xây dựng hệ thống nhập, kiểm định (SHA-256, GLB header, path safety, license, LOD metadata), quản lý phiên bản, chính sách tài nguyên `DEVELOPMENT` vs `PRODUCTION` và phân phát asset cục bộ an toàn.
+- **Scope:** `Asset Library`, `Asset Importer`, `Asset Validator`, `Asset Registry`, bảng `assets`/`asset_versions`/`asset_dependencies`, bộ **Placeholder Assets** chuẩn cho `GAME001` (`TT_MAP001`, `TT_CHAR001`, `TT_CHAR002`, `TT_BOSS001`), thực thi chính sách `DEVELOPMENT` (cho phép placeholder kèm cảnh báo) vs `PRODUCTION` (bắt buộc required assets hợp lệ, chặn thiếu dependency/placeholder chưa duyệt), UI Asset Library / Characters / Maps / Animations.
 - **Dependencies:** `GD02`, `GD03`.
-- **Deliverables:** Importer + Validator hoàn chỉnh, endpoint stream asset an toàn, placeholder package vượt qua 100% kiểm định.
-- **Acceptance criteria:** Chặn 100% path traversal (`../`, absolute path, symlink, file `.exe`/`.py`), phát hiện sai hash/GLB giả, tự fallback placeholder khi thiếu asset (AC14).
-- **Test requirements:** Security path traversal tests, fixture validator tests (valid/corrupt/missing license/external URI), persistence tests.
+- **Deliverables:** Importer + Validator hoàn chỉnh, endpoint stream asset an toàn (không expose arbitrary file paths), placeholder package vượt qua 100% kiểm định.
+- **Acceptance criteria:** Chặn 100% path traversal (`../`, absolute path, symlink, file `.exe`/`.py`), phát hiện sai hash/GLB giả; ở `DEVELOPMENT` tự fallback placeholder kèm cảnh báo rõ; ở `PRODUCTION` từ chối khởi chạy/không gắn `production-ready` khi thiếu required asset hoặc dùng placeholder chưa phê duyệt (AC14).
+- **Test requirements:** Security path traversal tests, fixture validator tests (valid/corrupt/missing license/external URI), `DEVELOPMENT` vs `PRODUCTION` policy tests, persistence tests.
 - **Out-of-scope requirements:** Không tích hợp Meshy/Tripo/AI generator/Blender; không tạo production 3D models.
 
 ### GD08 – Three.js Runtime *(gắn `TT-GD03` phần 1)*
@@ -99,7 +99,7 @@
 - **Scope:** `3D Runtime` (single `WebGLRenderer`), `/ws/renderer` snapshot/delta/gap recovery, `Overlay Engine` cơ bản (Header, Footer guide, Safe Area overlay toggle), telemetry FPS/draw calls, `QWebEngineView` preview.
 - **Dependencies:** `GD01`, `GD05`, `GD07`.
 - **Deliverables:** Frontend runtime đồng bộ trạng thái real-time từ Backend, chịu được reload/disconnect.
-- **Acceptance criteria:** Disconnect/reconnect tự đồng bộ lại đúng snapshot không reset gameplay (AC11); output dọc 9:16 rõ chữ trong Safe Area (AC17); không lỗi console và dispose sạch VRAM khi đóng.
+- **Acceptance criteria:** Disconnect/reconnect và Backend restart (đổi `stream_epoch`) tự đồng bộ lại đúng snapshot không reset gameplay, xử lý đúng stale snapshot / duplicate / overlapping / gap delta (AC11); `/ws/renderer` xác thực `RENDERER_STREAM_TOKEN` chỉ đọc + `Origin` và từ chối mọi đột biến gameplay từ Renderer; Broadcast URL không chứa admin token; output dọc 9:16 rõ chữ trong Safe Area (AC17); không lỗi console và dispose sạch VRAM khi đóng.
 - **Test requirements:** `tsc`, `vite build`, WebSocket gap-recovery tests, browser E2E smoke test + screenshot kiểm chứng.
 - **Out-of-scope requirements:** Không tính toán luật gameplay phía frontend; không tạo WebGLRenderer thứ 2.
 
@@ -140,22 +140,22 @@
 - **Out-of-scope requirements:** Không triển khai logic sát thương Boss chi tiết (thuộc GD13).
 
 ### GD13 – World Boss & Reward Engine *(gắn `TT-GD05`)*
-- **Objective:** Triển khai `Reward Ledger` dùng chung toàn Platform và toàn bộ sự kiện World Boss **Bạch Lang Vương** (`GAME001`).
-- **Scope:** `Reward Ledger` (`UK(event_id, player_id, reward_kind)`), bảng `g_cultivation_boss_events`, `g_cultivation_boss_participants`, vòng đời 8 trạng thái, luật chiến đấu tick `2s` / phản công `6s`, kỹ năng 3 nghề (`!boss`, `!skill`, `!defend`), thưởng thắng/thua & khôi phục `REWARDING` idempotent.
+- **Objective:** Triển khai `Reward Ledger` dùng chung toàn Platform, toàn bộ sự kiện World Boss **Bạch Lang Vương** (`GAME001`) kèm **Combat Balance Simulator** để kiểm chứng rủi ro cân bằng mà không tự ý đổi công thức GDD.
+- **Scope:** `Reward Ledger` (`UK(event_id, player_id, reward_kind)`), bảng `g_cultivation_boss_events` (gồm immutable `outcome_snapshot_json`), `g_cultivation_boss_participants`, vòng đời 8 trạng thái + recovery handler riêng của plugin, luật chiến đấu tick `2s` / phản công `6s`, kỹ năng 3 nghề (`!boss`, `!skill`, `!defend`), thưởng thắng/thua & khôi phục `RESOLVING`/`REWARDING` idempotent, và **Combat Balance Simulator** chạy nhiều tổ hợp người chơi.
 - **Dependencies:** `GD11`, `GD12`.
-- **Deliverables:** Platform `Reward Ledger` module + GAME001 Boss Combat Engine + Boss HUD/Control UI.
-- **Acceptance criteria:** Đạt `AC07` (thắng/thua/hết giờ xác định, tính đóng góp & forfeit đúng) và `AC08` (replay và crash giữa `REWARDING` không cấp thưởng trùng).
-- **Test requirements:** Deterministic combat math unit tests (3 nghề, defend + hộ thể không nhân chồng), crash-mid-reward recovery test, replay idempotency test.
-- **Out-of-scope requirements:** Không nhiều boss, không PvP.
+- **Deliverables:** Platform `Reward Ledger` module + GAME001 Boss Combat Engine + Boss HUD/Control UI + **Combat Balance Simulation Report** (`1, 5, 10, 20, 50, 100` người; các cảnh giới & nghề khác nhau; auto-attack only / active skills / mixed activity / boss retaliation).
+- **Acceptance criteria:** Đạt `AC07` (thắng/thua/hết giờ xác định, tính đóng góp & forfeit đúng) và `AC08` (replay và crash ở `RESOLVING` pre/post-commit hoặc `REWARDING` không cấp thưởng trùng); báo cáo đầy đủ số liệu rủi ro cân bằng (đặc biệt nhóm Phàm Nhân, boss scaling theo cảnh giới và tỷ lệ tử trận sớm) để chủ dự án duyệt trước khi sửa config cân bằng.
+- **Test requirements:** Deterministic combat math unit tests (3 nghề, defend + hộ thể không nhân chồng), crash-recovery matrix tests (`ACTIVE`/`RESOLVING`/`REWARDING`), replay idempotency test, Combat Balance Simulator multi-cohort suite.
+- **Out-of-scope requirements:** Không tự ý thay đổi công thức GDD khi chưa phê duyệt; không nhiều boss, không PvP.
 
 ### GD14 – Breakthrough & Tribulation *(gắn `TT-GD06`)*
-- **Objective:** Triển khai đột phá tăng tầng thường và hệ thống **Tiểu Thiên Kiếp** vượt đại cảnh giới (Luyện Khí → Trúc Cơ, Trúc Cơ → Kim Đan) với độ an toàn transaction tuyệt đối.
-- **Scope:** Bảng `g_cultivation_tribulation_queue`, `g_cultivation_tribulation_results`; lệnh `!dotpha`, `!dokiep`, `!hothe`, `!hotheauto`, `!hotheauto on`, `!hotheauto off`; hộ thể tự động mặc định bật (GM cấu hình được chính sách mặc định, người chơi tự bật/tắt, tính theo server-side event timing hỗ trợ độ trễ livestream); giữ/giải phóng `xp_reserved`, hàng chờ FIFO tối đa 20, 5 đợt thiên lôi (`17%` / `22%` trên thang `1000` HP nguyên, không RNG), phạt `10%` khi thất bại, hoàn `100%` khi hủy/lỗi hệ thống.
+- **Objective:** Triển khai đột phá tăng tầng thường và hệ thống **Tiểu Thiên Kiếp** vượt đại cảnh giới (Luyện Khí → Trúc Cơ, Trúc Cơ → Kim Đan) với độ an toàn transaction tuyệt đối và đo đạc độ trễ hàng chờ thực tế.
+- **Scope:** Bảng `g_cultivation_tribulation_queue`, `g_cultivation_tribulation_results`; lệnh `!dotpha`, `!dokiep`, `!hothe`, `!hotheauto`, `!hotheauto on`, `!hotheauto off`; hộ thể tự động mặc định bật (GM cấu hình được chính sách mặc định, người chơi tự bật/tắt, tính theo server-side event timing hỗ trợ độ trễ livestream); giữ/giải phóng `xp_reserved`, tách bạch 3 hàng chờ (Gameplay Execution Queue FIFO tối đa 20 vs Camera Focus Queue vs Event Presentation Queue), 5 đợt thiên lôi (`17%` / `22%` trên thang `1000` HP nguyên, không RNG), phạt `10%` khi thất bại, hoàn `100%` khi hủy/lỗi hệ thống, plugin recovery handler riêng, và đánh giá **queue waiting time** dưới tải cao.
 - **Dependencies:** `GD11`, `GD12`, `GD13`.
-- **Deliverables:** Breakthrough & Tribulation Engine, Tribulation Queue UI (kèm cấu hình mặc định auto-guard), Crash Recovery hoàn `xp_reserved`.
-- **Acceptance criteria:** Đạt `AC04` (đủ/thiếu XP), `AC05` (20 yêu cầu FIFO, không giữ XP 2 lần, không chạy khi boss sắp mở trong 30s hoặc đang active), `AC06` (thất bại/hủy/restart xử lý XP chính xác 100%, `!hotheauto on/off` và server-side timing đúng quy tắc, gift không ảnh hưởng xác suất).
-- **Test requirements:** Unit tests thang 1000 HP, `!hothe` & `!hotheauto`/`on`/`off` (mặc định bật, GM override default cho lượt mới, không đòi hỏi phản ứng animation), concurrency test chống giữ XP trùng, crash recovery test trong `ACTIVE`.
-- **Out-of-scope requirements:** Không mở cảnh giới Nguyên Anh sau Kim Đan viên mãn; không RNG hay quà trả phí tăng tỷ lệ.
+- **Deliverables:** Breakthrough & Tribulation Engine, Tribulation Queue UI (kèm cấu hình mặc định auto-guard), Crash Recovery hoàn `xp_reserved`, báo cáo đánh giá **Tribulation Queue Waiting Time** (kèm đề xuất mở rộng parallel/batch cho hậu MVP).
+- **Acceptance criteria:** Đạt `AC04` (đủ/thiếu XP), `AC05` (20 yêu cầu FIFO, không giữ XP 2 lần, không chạy khi boss sắp mở trong 30s hoặc đang active), `AC06` (thất bại/hủy/restart xử lý XP chính xác 100%, `!hotheauto on/off` và server-side timing đúng quy tắc, gift không ảnh hưởng xác suất); mọi sự kiện cá nhân không bắt buộc chiếm camera chính.
+- **Test requirements:** Unit tests thang 1000 HP, `!hothe` & `!hotheauto`/`on`/`off` (mặc định bật, GM override default cho lượt mới, không đòi hỏi phản ứng animation), concurrency test chống giữ XP trùng, crash recovery test trong `ACTIVE`/`RESOLVING`, queue wait-time simulation test (20 yêu cầu đồng thời).
+- **Out-of-scope requirements:** Không tự đổi luật cân bằng hay triển khai parallel/batch tribulation trong MVP; không mở cảnh giới Nguyên Anh sau Kim Đan viên mãn; không RNG hay quà trả phí tăng tỷ lệ.
 
 ### GD15 – Inventory & Items *(gắn `TT-GD05` bổ sung)*
 - **Objective:** Hoàn thiện kho vật phẩm người chơi, tiêu hao nguyên tử và tích hợp thưởng vật phẩm từ World Boss.

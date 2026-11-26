@@ -247,6 +247,8 @@ erDiagram
         INTEGER started_sim_ms
         INTEGER deadline_sim_ms
         TEXT outcome
+        INTEGER outcome_committed
+        TEXT outcome_snapshot_json
         TEXT config_snapshot_json
         TEXT created_at
         TEXT ended_at
@@ -347,7 +349,8 @@ erDiagram
 - `reward_ledger`: `CHECK (amount >= 0)`
 - `game_sessions`: `CHECK (state IN ('CREATED','RUNNING','PAUSED','PAUSED_ERROR','STOPPING','COMPLETED','INTERRUPTED_RECOVERED'))`
 - `asset_versions`: `CHECK (validation_status IN ('PENDING','VALID','INVALID','DEPRECATED'))`
-- `event_ingestions`: `CHECK (ingestion_status IN ('ACCEPTED','DUPLICATE','REJECTED','RATE_LIMITED'))`
+- `event_ingestions`: `CHECK (ingestion_status IN ('ACCEPTED','DUPLICATE','REJECTED','RATE_LIMITED','REJECTED_BACKPRESSURE'))`
+- `scheduled_events`: `CHECK (state IN ('SCHEDULED','ANNOUNCING','REGISTRATION','PREPARING','ACTIVE','RESOLVING','REWARDING','COMPLETED','CANCELED','CANCELED_RECOVERY','FAILED'))` *(thống nhất 100% tên trạng thái giữa ERD, TDD và Game Plugin Contract)*
 
 ---
 
@@ -394,19 +397,26 @@ erDiagram
 - Tự động sao lưu tệp DB (`backups/pre_migrate_<timestamp>.db`) trước khi chạy `alembic upgrade head`.
 - **GD00 tuyệt đối không thực thi migration production.**
 
-### 6.2 Ranh giới Transaction (Transaction Boundaries)
+### 6.2 Ranh giới Transaction & Database-Wide Single Writer (`HIGH-003`)
+*(Thiết kế tại GD00; triển khai Centralized Write Coordinator tại GD02)*
+- Mọi thao tác ghi vào SQLite đi qua **Centralized Write Coordinator** (bounded write queue / global write serializer đảm bảo **tối đa 1 write transaction hoạt động trên toàn bộ DB tại một thời điểm**, kèm `PRAGMA journal_mode=WAL`, `PRAGMA foreign_keys=ON`, `PRAGMA busy_timeout=5000`, `transaction_timeout_ms=5000`, rollback tự động khi lỗi/timeout và drain sạch + `wal_checkpoint(TRUNCATE)` khi shutdown). Khóa theo `player_id` không thay thế cho global write serialization của SQLite.
+
 Mọi nghiệp vụ thay đổi trạng thái quan trọng chạy trong **1 SQLite transaction nguyên tử duy nhất**:
-1. **Onboarding (`!join`):** Insert/Lookup `external_identities` → `players` → `player_game_profiles` → `g_cultivation_characters` → `g_cultivation_progress` → `g_cultivation_inventory` (`healing_pill = 3`).
+1. **Onboarding (`!join`):** Insert/Lookup `external_identities` → `players` → `player_game_profiles` → `g_cultivation_characters` (`auto_guard_enabled = 1`) → `g_cultivation_progress` → `g_cultivation_inventory` (`healing_pill = 3`).
 2. **Normal Breakthrough:** Kiểm tra `xp - xp_reserved >= cost`, kiểm tra `version`, trừ `xp`, tăng `stage_index`, ghi `g_cultivation_realm_history`.
 3. **Tribulation Reserve:** Kiểm tra chưa có yêu cầu active/queued (partial unique index), `xp - xp_reserved >= cost`, tăng `xp_reserved += cost`, insert `g_cultivation_tribulation_queue(status='QUEUED')`.
-4. **Reward Payout:** Insert `reward_ledger` (với `UK(event_id, player_id, reward_kind)`) + cập nhật `g_cultivation_progress` (`xp` có clamp cap `2 × cost`, `spirit_stones`) + `g_cultivation_inventory` (`healing_pill + 1`) trong **cùng transaction**. Nếu `reward_ledger` báo đã tồn tại → bỏ qua sạch không cộng lại.
-5. **Consumable Use (`!heal`):** Kiểm tra `quantity >= 1`, trạng thái sống và chưa đầy HP → trừ `quantity -= 1` và hồi HP trong cùng transaction.
+4. **Immutable Outcome Commit (`RESOLVING → REWARDING`):** Tính kết quả xác định, lưu `outcome`, `outcome_snapshot_json` bất biến, đặt `outcome_committed = 1` và chuyển trạng thái `REWARDING` trong **1 transaction nguyên tử** trước khi chạy phát thưởng.
+5. **Reward Payout:** Insert `reward_ledger` (với `UK(event_id, player_id, reward_kind)`) + cập nhật `g_cultivation_progress` (`xp` có clamp cap `2 × cost`, `spirit_stones`) + `g_cultivation_inventory` (`healing_pill + 1`) trong **cùng transaction**. Nếu `reward_ledger` báo đã tồn tại → bỏ qua sạch không cộng lại.
+6. **Consumable Use (`!heal`):** Kiểm tra `quantity >= 1`, trạng thái sống và chưa đầy HP → trừ `quantity -= 1` và hồi HP trong cùng transaction.
 
-### 6.3 Idempotency & Crash Recovery
+### 6.3 Idempotency & Plugin-Delegated Crash Recovery (`HIGH-005`)
 - **Event Deduplication:** Khi `source_event_id` tồn tại, `processed_events` khóa duy nhất `(source_namespace, source_event_id)` ngăn xử lý lại khi reconnect hoặc replay. Nếu provider không cung cấp `source_event_id`, adapter phải khai báo rõ cơ chế và giới hạn, không tùy tiện gộp hai bình luận giống nhau thành một.
-- **Crash Recovery:**
-  - Mọi `g_cultivation_tribulation_queue` ở trạng thái `QUEUED/PREPARING/ACTIVE` hoặc `g_cultivation_boss_events` ở `ANNOUNCING/REGISTRATION/PREPARING/ACTIVE` khi khởi động lại sau crash được chuyển `CANCELED_RECOVERY`; toàn bộ `xp_reserved` liên quan được hoàn trả nguyên vẹn (`xp_reserved -= reserved_xp`) trong 1 transaction.
-  - Mọi `g_cultivation_boss_events` dừng ở `REWARDING` được duyệt lại danh sách participant đủ điều kiện và gọi `RewardLedger.grant_idempotent()` — người đã nhận trước crash bị bỏ qua, người chưa nhận được cấp bù đủ, rồi đánh dấu `COMPLETED`.
+- **Crash Recovery (tách Platform Core vs Plugin Handler):**
+  - Platform Recovery Core chỉ xử lý `game_sessions` (`RUNNING`/`PAUSED`/`PAUSED_ERROR`/`STOPPING` → `INTERRUPTED_RECOVERED`) và ủy thác cho từng plugin qua `plugin.recover_after_crash(uow, ctx)` (không hardcode logic hay bảng `g_cultivation_*` trong `core/` hay `modules/`).
+  - *Ví dụ đối chiếu cho Plugin `cultivation_online`:*
+    - Event/request chưa commit immutable outcome (`SCHEDULED`, `ANNOUNCING`, `REGISTRATION`, `PREPARING`, `ACTIVE`, `RESOLVING` với `outcome_committed = 0`) → chuyển `CANCELED_RECOVERY`, hoàn trả `100%` `xp_reserved` không phạt, không phát thưởng.
+    - Event đã commit immutable outcome (`RESOLVING` với `outcome_committed = 1` hoặc `REWARDING`) → chạy bù idempotent qua `RewardLedger.grant_idempotent()` dựa trên `outcome_snapshot_json` rồi chuyển `COMPLETED`.
+    - Trạng thái kết thúc (`COMPLETED`, `CANCELED`, `CANCELED_RECOVERY`, `FAILED`) → no-op.
 - **Data Retention & Erasure:**
   - `event_ingestions` có chính sách dọn dẹp theo cấu hình (mặc định giữ 7 ngày, không lưu raw chat lâu hơn nhu cầu vận hành).
   - Xóa người chơi theo yêu cầu GM thực hiện ẩn danh hóa (`ADR-012`), bảo toàn toàn vẹn khóa ngoại của `reward_ledger` và `audit_logs`.

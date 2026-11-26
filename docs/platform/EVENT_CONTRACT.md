@@ -72,13 +72,48 @@ Mọi sự kiện đi qua `Event Gateway` (dù từ Authorized TikTok Provider h
 - `Event Bus` bảo toàn thứ tự FIFO theo `player_external_id` để các lệnh liên tiếp của cùng một người chơi không bao giờ chạy đảo ngược.
 - Các hàng chờ cộng đồng (ví dụ hàng chờ Tiểu Thiên Kiếp) sắp xếp xác định bằng cặp `(received_at_monotonic, player_id)`.
 
-### 3.3 Rate Limiting & Backpressure
-- **Per-player Cooldown (Rule Engine):** Áp dụng cooldown độc lập theo từng player và nhóm lệnh dựa trên **server-side `SimulationClock`** (không phụ thuộc thời gian animation ở client, hỗ trợ độ trễ livestream). Ví dụ GAME001 (20 lệnh/dạng lệnh MVP): `!join` 5s, `!nam`/`!nu`/`!kiem`/`!dan`/`!the` 10s, `!tuluyen`/`!nghi` 3s, `!dotpha`/`!dokiep` 10s, `!boss` 5s, `!skill` 12s, `!defend`/`!hothe` 8s, `!hotheauto` / `!hotheauto on` / `!hotheauto off` 5s, `!heal` 20s, `!info`/`!find`/`!rank` 60s, `!help` 30s.
-- **Bounded Queue & Load Shedding:**
-  - `Event Bus` đặt giới hạn mặc định `max_queue_size = 2000`.
-  - Khi độ sâu hàng đợi vượt `70%`: kích hoạt chế độ gộp/bỏ bớt sự kiện ưu tiên thấp (`like`, `room_join`, `cosmetic burst`).
-  - Khi vượt `90%`: từ chối nhẹ lệnh hiển thị (`!info`, `!find`, `!rank`) với lý do `SYSTEM_BUSY`, ưu tiên tối đa lệnh gameplay (`!boss`, `!skill`, `!defend`, `!heal`, `!hothe`, `!dotpha`, `!join`).
-  - Mục tiêu kiểm thử burst: xử lý ổn định `100 lệnh/giây` trong 30 giây mà không mất lệnh gameplay hợp lệ và không crash (AC09 / GD04 / GD19).
+### 3.3 Rate Limiting & Chính sách Backpressure 100% (`MEDIUM-004`)
+- **Per-player Cooldown (Rule Engine):** Áp dụng cooldown độc lập theo từng player và nhóm lệnh dựa trên **server-side `SimulationClock`** (không phụ thuộc thời gian animation ở client, hỗ trợ độ trễ livestream). Toàn bộ bảng lệnh và cooldown được nạp động từ tệp `commands.json` của từng plugin (`MEDIUM-003`).
+- **Phân biệt rõ Target Throughput vs Guaranteed Delivery:**
+  - *Target Throughput:* Mục tiêu kiểm thử chịu tải burst **`100 lệnh/giây` trong 30 giây** trên máy cục bộ.
+  - *Guaranteed Delivery:* Không cam kết bộ đệm vô hạn; trong môi trường Desktop local-first, hàng đợi bị chặn biên (bounded) và áp dụng **Admission Control** tường minh để bảo vệ ổn định RAM và độ trễ.
+- **Chính sách theo ngưỡng hàng đợi `Event Bus` (`max_queue_size = 2000`):**
+  - **Ngưỡng `70%`:** Kích hoạt gộp/giảm tần suất sự kiện ưu tiên thấp (`like`, `room_join`, `cosmetic burst`).
+  - **Ngưỡng `90%`:** Từ chối có mã lỗi `SYSTEM_BUSY` cho lệnh hiển thị phụ (`!info`, `!find`, `!rank`), giữ nguyên băng thông cho lệnh gameplay lõi.
+  - **Ngưỡng `100%` (Queue Full Policy):**
+    1. **Admission Control & Explicit Rejection:** Khi hàng đợi đạt `100%`, `Event Gateway` **từ chối tường minh** với mã `INGESTION_QUEUE_FULL` (`HTTP 429` cho Simulator/API, structured rejection cho adapter) — **tuyệt đối không âm thầm drop (no silent drop) lệnh gameplay**.
+    2. **Non-Blocking Gateway & Bounded Retries:** `Event Gateway` **tuyệt đối không block vô hạn** khi enqueue; sử dụng enqueue timeout hữu hạn (`50ms`) và tối đa `<= 2` lần retry ngắn khi gặp áp lực tức thời trước khi trả `INGESTION_QUEUE_FULL`.
+    3. **Priority Policy:** Giữ slot ưu tiên (reserved headroom) cho sự kiện hệ thống (`connector_status`, GM emergency stop) và lệnh gameplay lõi (`!boss`, `!skill`, `!defend`, `!heal`, `!hothe`, `!dotpha`, `!join`, `!roi`) trước lệnh trình chiếu/cosmetic.
+    4. **Metrics & Auditability:** Mọi từ chối do backpressure bắt buộc ghi nhận vào `event_ingestions` với `ingestion_status = 'REJECTED_BACKPRESSURE'` (hoặc tổng hợp có audit trong trường hợp bão sự kiện), đồng thời cập nhật metrics `events_rejected_backpressure_total`, `queue_depth`, `rejection_by_priority` cho Desktop UI & Analytics.
+
+---
+
+## 3.5 Hợp đồng Lệnh Plugin (`commands.json` — `MEDIUM-003`)
+
+**Nguyên tắc tách biệt:** Platform `Command Parser` (`modules/command_parser`) **tuyệt đối không hardcode bất kỳ lệnh nào của `cultivation_online`**. Mọi lệnh của từng game được khai báo trong tệp `games/<plugin_id>/commands.json` và nạp vào parser tại `on_load()`.
+
+### Bảng đối chiếu đầy đủ Lệnh MVP `GAME001` (`GDD.md` v0.1.1 ↔ `commands.json`)
+| Canonical Command | Aliases (ví dụ Tiếng Việt có dấu) | Arguments | Cooldown Group | Cooldown | Preconditions | Ownership | Error Codes chính |
+|---|---|---|---|---:|---|---|---|
+| `!join` | `!thamgia`, `!nhập_môn` | Không | `onboarding` | 5s | Phiên `RUNNING` (idempotent) | `sender_only` | `SESSION_NOT_RUNNING`, `COOLDOWN_ACTIVE` |
+| `!nam` / `!nu` | `!nữ` | Không | `appearance` | 10s | Ngoài event; có thể nhập môn trực tiếp | `sender_only` | `IN_ACTIVE_EVENT`, `COOLDOWN_ACTIVE` |
+| `!kiem` / `!dan` / `!the` | `!kiếm`, `!đan`, `!thể` | Không | `profession` | 10s | Trong cửa sổ 60s hoặc GM cho phép, ngoài chiến đấu | `sender_only` | `SELECTION_WINDOW_CLOSED`, `IN_ACTIVE_EVENT` |
+| `!tuluyen` | `!tuluyện` | Không | `cultivation_mode` | 3s | Đã nhập môn, ngoài event | `sender_only` | `PLAYER_NOT_JOINED`, `IN_ACTIVE_EVENT` |
+| `!nghi` | `!nghỉ` | Không | `cultivation_mode` | 3s | Đã nhập môn, ngoài event | `sender_only` | `PLAYER_NOT_JOINED`, `IN_ACTIVE_EVENT` |
+| `!dotpha` | `!độtphá`, `!dokiep`, `!độkiếp` | Không | `breakthrough` | 10s | Đủ XP khả dụng, chưa có yêu cầu kiếp chờ/chạy | `sender_only` | `INSUFFICIENT_XP`, `ALREADY_QUEUED`, `QUEUE_FULL`, `MAX_REALM_REACHED` |
+| `!boss` | — | Không | `boss_register` | 5s | Boss đang ở pha `REGISTRATION`, còn slot `<100` | `sender_only` | `BOSS_NOT_OPEN`, `BOSS_FULL`, `ALREADY_REGISTERED` |
+| `!skill` | `!kỹnăng` | Không | `boss_skill` | 12s | Đang sống trong Boss `ACTIVE` | `sender_only` | `NOT_IN_BOSS`, `PLAYER_DEAD`, `COOLDOWN_ACTIVE` |
+| `!defend` | `!phòngthủ` | Không | `boss_defend` | 8s | Đang sống trong Boss `ACTIVE` | `sender_only` | `NOT_IN_BOSS`, `PLAYER_DEAD`, `COOLDOWN_ACTIVE` |
+| `!heal` | `!hồimáu` | Không | `consume_heal` | 20s | Có Hồi linh đan `>= 1`, còn sống, chưa đầy HP | `sender_only` | `NO_HEALING_PILL`, `PLAYER_DEAD`, `HP_ALREADY_FULL` |
+| `!hothe` | `!hộthể` | Không | `tribulation_guard` | 8s | Đang trong Tiểu Thiên Kiếp `ACTIVE` | `sender_only` | `NOT_IN_TRIBULATION`, `COOLDOWN_ACTIVE` |
+| `!hotheauto` | `!hộthểtựđộng` | `[on \| off]` *(optional)* | `auto_guard_pref` | 5s | Đã nhập môn (`!hotheauto` xem trạng thái; `on`/`off` bật/tắt; mặc định bật) | `sender_only` | `PLAYER_NOT_JOINED`, `INVALID_ARGS`, `COOLDOWN_ACTIVE` |
+| `!info` | `!status`, `!thôngtin` | Không | `overlay_info` | 60s | Đã nhập môn, hàng chờ overlay chưa đầy | `sender_only` | `PLAYER_NOT_JOINED`, `QUEUE_FULL`, `SYSTEM_BUSY` |
+| `!find` | `!me`, `!tìm` | Không | `camera_find` | 60s | Đã nhập môn, không ngắt camera Boss | `sender_only` | `PLAYER_NOT_JOINED`, `QUEUE_FULL`, `SYSTEM_BUSY` |
+| `!rank` | `!bxh` | Không | `overlay_rank` | 60s | Phiên `RUNNING` | `sender_only` | `COOLDOWN_ACTIVE`, `SYSTEM_BUSY` |
+| `!help` | `!hướngdẫn` | Không | `overlay_help` | 30s | Phiên `RUNNING` | `sender_only` | `COOLDOWN_ACTIVE` |
+| `!roi` | `!rời` | Không | `opt_out` | 5s | Đã nhập môn (**Opt-out:** lưu tiến trình, ẩn khỏi scene, **không xóa `reward_ledger`**; nếu đang event xử lý forfeit theo luật) | `sender_only` | `PLAYER_NOT_JOINED`, `COOLDOWN_ACTIVE` |
+
+- **Quy tắc Validation & Ownership chung:** Trim khoảng trắng, không phân biệt hoa/thường, 1 comment tối đa 1 lệnh đầu tiên hợp lệ, từ chối tham số dư/sai enum với `INVALID_ARGS`, mọi lệnh luôn khóa `ownership = sender_only` (người xem không thể truyền ID người khác để điều khiển).
 
 ---
 

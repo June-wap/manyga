@@ -142,13 +142,14 @@ Authorized Event Provider (hoặc Mock Event Simulator)
 
 ---
 
-## 6. Ranh giới bảo mật (Security Boundaries)
+## 6. Ranh giới bảo mật (Security Boundaries — `HIGH-004`)
 
-1. **Network Exposure:** FastAPI chỉ lắng nghe `127.0.0.1` theo mặc định. Không mở `0.0.0.0` trừ khi người dùng bật cấu hình tường minh kèm cảnh báo.
-2. **Trusted Built-in Plugins Only:** Giai đoạn đầu chỉ nạp plugin đã đăng ký trong `games/` (allowlist nội bộ), không tải mã Python bất kỳ từ thư mục ngoài hoặc internet (chống Arbitrary Code Execution).
-3. **Path Traversal Protection:** Mọi đường dẫn trong Asset Manifest phải là relative path chuẩn hóa, bị chặn tuyệt đối nếu chứa `..`, ổ đĩa tuyệt đối (`C:\`, `D:\`), UNC path hay symlink thoát ra ngoài `assets/`.
-4. **Sanitization & Privacy:** Mọi tên hiển thị và nội dung từ viewer bị giới hạn độ dài (20 ký tự), escape HTML/XSS trước khi render lên Overlay, lọc từ khóa cấm và không truyền vào TTS nếu chưa kiểm duyệt.
-5. **Secrets & Logging:** Không hardcode API key/token; mọi trường nhạy cảm bị tự động redact trong structured logs và `audit_logs`.
+1. **Network Exposure & Origin Isolation:** FastAPI chỉ lắng nghe `127.0.0.1` theo mặc định, bật `TrustedHostMiddleware` (`127.0.0.1`, `localhost`) và restricted Origin policy (**cấm tuyệt đối wildcard CORS `*`**).
+2. **Local Session Auth & Permission Separation:** Sinh khóa phiên ngẫu nhiên mật mã mỗi lần chạy (`ADMIN_SESSION_TOKEN` cho Desktop UI quản trị vs `RENDERER_STREAM_TOKEN` chỉ đọc cho màn hình phát sóng). `GET /api/v1/health` công khai cục bộ chỉ trả liveness tối thiểu; mọi privileged REST endpoint và `/ws/admin` bắt buộc xác thực Admin Token + Origin; `/ws/renderer` chỉ đọc và không thể thay đổi gameplay; tuyệt đối không đặt Admin Token vào Broadcast URL.
+3. **Trusted Built-in Plugins Allowlist:** Giai đoạn đầu chỉ nạp plugin khớp chính xác **bảng allowlist tĩnh** trong Platform (không chỉ kiểm tra prefix module path), chặn nạp mã Python tùy ý bên ngoài (chống Arbitrary Code Execution).
+4. **Path Traversal & File Exposure Protection:** Mọi đường dẫn trong Asset Manifest phải là relative path chuẩn hóa, bị chặn tuyệt đối nếu chứa `..`, ổ đĩa tuyệt đối (`C:\`, `D:\`), UNC path hay symlink thoát ra ngoài `assets/`; API không bao giờ expose đường dẫn đĩa tùy ý của máy chủ.
+5. **Sanitization & Privacy:** Mọi tên hiển thị và nội dung từ viewer bị giới hạn độ dài (20 ký tự), escape HTML/XSS trước khi render lên Overlay, lọc từ khóa cấm và không truyền vào TTS nếu chưa kiểm duyệt.
+6. **Secrets & Logging:** Không hardcode API key/token; mọi trường nhạy cảm bị tự động redact trong structured logs và `audit_logs`.
 
 ---
 

@@ -4,6 +4,25 @@ Mọi thay đổi đáng chú ý của dự án được ghi nhận tại đây 
 
 ---
 
+## [0.0.3-gd00-fix02] - 2026-11-26
+
+### Added
+- `docs/platform/GD01_SCOPE.md` — Đặc tả phạm vi đóng khung cho `GD01` đồng bộ 100% với `docs/ROADMAP.md` (`HIGH-001`).
+- `docs/GD00_INDEPENDENT_REVIEW.md` — Hồ sơ kiểm chứng độc lập toàn bộ findings (`HIGH-001`..`HIGH-006`, `MEDIUM-001`..`MEDIUM-004`, `LOW-001` và 7 mục Cross-Check).
+- `docs/GD00_FIX02_REPORT.md` — Báo cáo bàn giao giải quyết toàn bộ findings trước khi bước sang GD01.
+- Các quyết định kiến trúc `ADR-016`–`ADR-020` và củng cố `ADR-010`, `ADR-014` trong `docs/DECISIONS.md`.
+
+### Changed
+- **HIGH-001 (GD01 Scope):** Đồng bộ `ROADMAP.md`, `API_CONTRACT.md` và `UI_GUIDELINES.md` theo `GD01_SCOPE.md` (chốt DB migrations/services thuộc `GD02`, Plugin Engine/`cultivation_online` skeleton thuộc `GD05`, Asset Library thuộc `GD07`).
+- **HIGH-002 (Development vs Production Asset Policy):** Thiết kế hai chế độ `DEVELOPMENT` và `PRODUCTION` trong `ASSET_CONTRACT.md`, `GAME_PLUGIN_CONTRACT.md`, `MODULE_DESIGN.md` và `ROADMAP.md`.
+- **HIGH-003 (SQLite Single Writer):** Chốt **Centralized Write Coordinator** (database-wide single-writer serialization, bounded write queue, `transaction_timeout`, rollback & shutdown drain) trong `TDD.md`, `DATABASE_DESIGN.md`, `MODULE_DESIGN.md` và `ADR-014`.
+- **HIGH-004 (Local API Security):** Bổ sung mô hình bảo mật cục bộ đầy đủ (`127.0.0.1`, `TrustedHost`, no wildcard CORS, tách `ADMIN_SESSION_TOKEN` vs `RENDERER_STREAM_TOKEN`, WS Auth+Origin, public `/health` vs privileged REST, phased security acceptance criteria từ GD01+) trong `API_CONTRACT.md`, `ARCHITECTURE.md`, `TESTING_POLICY.md` và `GD01_SCOPE.md`.
+- **HIGH-005 (Crash Recovery Matrix):** Bổ sung ma trận phục hồi cho mọi trạng thái (`RESOLVING` pre/post-commit immutable `outcome_snapshot_json`, `REWARDING`, `COMPLETED`, `CANCELED`, `FAILED`) và tách biệt hoàn toàn Platform Recovery Core với Plugin Recovery Handlers trong `TDD.md`, `DATABASE_DESIGN.md`, `GAME_PLUGIN_CONTRACT.md` và `MODULE_DESIGN.md`.
+- **HIGH-006 (Snapshot/Delta Protocol):** Bổ sung `stream_epoch`, `snapshot_seq`, `request_id`, quy tắc apply nghiêm ngặt, xử lý stale snapshot / duplicate / overlapping / gap / backend restart / renderer reconnect và vòng đời Resync trong `API_CONTRACT.md` và `TDD.md`.
+- **MEDIUM-001..004 & LOW-001:** Ghi nhận rủi ro cân bằng World Boss + Combat Balance Simulator tại `GD13` (không sửa công thức GDD); tách 3 hàng chờ Tiểu Thiên Kiếp + đánh giá queue waiting time tại `GD14` + đề xuất parallel/batch hậu MVP; chuẩn hóa đầy đủ `commands.json` & cấm hardcode lệnh game trong Platform `Command Parser`; bổ sung chính sách Backpressure `100%` (explicit rejection `INGESTION_QUEUE_FULL`, không silent drop gameplay, không block vô hạn Gateway); củng cố static trusted plugin allowlist và đồng bộ toàn bộ tài liệu + links.
+
+---
+
 ## [0.0.2-gd00-fix01] - 2026-11-26
 
 ### Changed

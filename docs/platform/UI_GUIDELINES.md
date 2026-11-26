@@ -56,20 +56,20 @@ Sidebar trái thu gọn được (`220px` mở rộng / `64px` thu gọn), nhóm
 
 | Nhóm | # | Màn hình | Chức năng chính | Giai đoạn |
 |---|---|---|---|---|
-| **Vận hành (Operate)** | 1 | **Dashboard** | Tổng quan sức khỏe Backend/DB, phiên gần nhất, game đang chọn, cảnh báo nhanh | `GD01` / `GD03` |
-| | 2 | **Game Library** | Danh sách mini game (`GAME001`–`GAME007+`), trạng thái tương thích, chọn active game | `GD01` / `GD05` |
-| | 3 | **Live Studio** | Checklist sẵn sàng phát sóng, Broadcast Preview 9:16, URL OBS Browser Source, trạng thái Connector | `GD03` / `GD18` |
+| **Vận hành (Operate)** | 1 | **Dashboard** | Tổng quan sức khỏe Backend/DB, phiên gần nhất, game đang chọn, cảnh báo nhanh | `GD01` (health shell) / `GD03` (full) |
+| | 2 | **Game Library** | Danh sách mini game (`GAME001`–`GAME007+`), trạng thái tương thích, chọn active game | `GD01` (nav placeholder) / `GD05` (full) |
+| | 3 | **Live Studio** | Checklist sẵn sàng phát sóng (`DEVELOPMENT`/`PRODUCTION` asset mode), Broadcast Preview 9:16, URL OBS Browser Source (không chứa admin token), trạng thái Connector | `GD03` / `GD18` |
 | | 4 | **Game Master** | Trung tâm điều hành trực tiếp trong lúc live (gắn Extension Panel của game đang chạy) | `GD03` / `GD12` |
 | **Luật & Sự kiện (Rules)** | 5 | **Event Scheduler** | Lịch sự kiện tự động/thủ công, timeline sắp diễn ra, trạng thái xung đột | `GD12` |
 | | 6 | **Gift Mapping** | Ánh xạ quà tặng sang **hiệu ứng cosmetic** (kèm cảnh báo khóa Anti-P2W) | `GD06` / `GD16` |
 | | 7 | **Players** | Danh sách người chơi, tìm kiếm, trạng thái hoạt động, kiểm duyệt tên, xóa/ẩn danh hóa | `GD03` / `GD11` |
-| **Tài nguyên (Assets)** | 8 | **Asset Library** | Kho tổng hợp mọi asset, trạng thái validation, nút Import gói ngoài | `GD01` / `GD07` |
+| **Tài nguyên (Assets)** | 8 | **Asset Library** | Kho tổng hợp mọi asset, trạng thái validation & cảnh báo placeholder, nút Import gói ngoài | `GD01` (nav placeholder) / `GD07` (full) |
 | | 9 | **Characters** | Lọc nhanh asset `character`, phiên bản, placeholder/production, skeleton profile | `GD07` / `GD09` |
 | | 10 | **Maps** | Lọc nhanh asset `map`, kiểm tra zone anchors (`spawn_gate`, `cultivation_court`, ...) | `GD07` / `GD10` |
 | | 11 | **Animations** | Lọc nhanh asset `animation`, bảng đối chiếu clip bắt buộc của game | `GD07` / `GD09` |
 | **Kiểm thử & Hệ thống** | 12 | **Event Simulator** | Bảng giả lập lệnh chat/gift/burst 100/s, chạy kịch bản Replay, giả lập disconnect | `GD04` |
 | | 13 | **Analytics** | Chỉ số phiên live, FPS/VRAM, latency p50/p95, thống kê Boss/Độ kiếp, xuất benchmark | `GD18` / `GD19` |
-| | 14 | **Settings** | Cấu hình cổng loopback, retention log, âm lượng, giảm nhấp nháy VFX, backup DB | `GD01` / `GD03` |
+| | 14 | **Settings** | Cấu hình cổng loopback, retention log, âm lượng, giảm nhấp nháy VFX, backup DB | `GD01` (local shell) / `GD03` (full) |
 
 ---
 

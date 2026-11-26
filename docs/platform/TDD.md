@@ -47,25 +47,48 @@ PRAGMA busy_timeout = 5000;
 PRAGMA temp_store = MEMORY;
 ```
 
-### Mô hình thực thi giao dịch
-- **Single Writer Discipline:** Mọi tác vụ ghi vào SQLite đi qua một lớp `UnitOfWork` (SQLAlchemy 2.x) với serialization hợp lý theo `player_id` hoặc hàng đợi ghi tập trung ở tầng Application Service để triệt tiêu `SQLITE_BUSY` khi burst `100 lệnh/giây`.
-- **Optimistic Concurrency Control:** Các bảng tiến trình quan trọng (`g_cultivation_progress`) có cột `version INTEGER NOT NULL DEFAULT 1`. Cập nhật kiểm tra `WHERE profile_id = :id AND version = :expected_version` và tăng `version + 1`.
+### Mô hình thực thi giao dịch (Database-Wide Single Writer — `HIGH-003`)
+*(Chỉ thiết kế trong GD00; triển khai thực tế tại `GD02`)*
+
+SQLite khóa **toàn bộ tệp cơ sở dữ liệu** khi ghi (ngay cả ở chế độ `WAL` cũng chỉ cho phép duy nhất **1 write transaction** hoạt động đồng thời). Vì vậy, khóa theo từng `player_id` (per-player lock) **chỉ đủ cho thứ tự logic domain và KHÔNG đủ để ngăn `SQLITE_BUSY` write contention** giữa nhiều người chơi ghi song song.
+
+- **Centralized Write Coordination (Database-Wide Serialization):**
+  - Mọi tác vụ ghi vào SQLite bắt buộc đi qua một **Centralized Write Coordinator** (global transaction serializer / bounded write queue `max_write_queue = 512`) đặt trong `Database Manager`.
+  - Đảm bảo bất biến: **tối đa 1 write transaction đang mở trên toàn bộ CSDL tại bất kỳ thời điểm nào**. Các tác vụ đọc thuần túy (`read_session()`) chạy song song qua kết nối `WAL` read-only.
+- **Unit of Work, Timeouts & Rollback:**
+  - Mỗi write job thực thi bên trong một `UnitOfWork` nguyên tử có **`transaction_timeout_ms = 5000`** (song song với `PRAGMA busy_timeout = 5000`).
+  - Mọi ngoại lệ hoặc quá hạn `transaction_timeout_ms` bắt buộc **rollback nguyên tử**, nhả ngay khóa write serializer và trả mã lỗi có cấu trúc.
+  - Khi **Graceful Shutdown**: đóng cổng nhận write job mới, drain hết các job đã nhận trong giới hạn timeout, chạy `PRAGMA wal_checkpoint(TRUNCATE)` và đóng engine sạch.
+- **Optimistic Concurrency Control:** Các bảng tiến trình quan trọng (ví dụ bảng tiến trình của plugin) kết hợp thêm cột `version INTEGER NOT NULL DEFAULT 1` kiểm tra `WHERE profile_id = :id AND version = :expected_version` để phát hiện xung đột logic trước khi commit.
 - **Chiến lược Checkpoint:**
-  - *Immediate Commit (Atomic):* Nhập môn (`!join`), đổi nghề/ngoại hình, đột phá, giữ/giải phóng XP độ kiếp, dùng vật phẩm (`!heal`), phát thưởng (`reward_ledger`), chuyển trạng thái session/event, thao tác GM audit.
+  - *Immediate Commit (Atomic):* Nhập môn (`!join`), đổi nghề/ngoại hình, đột phá, giữ/giải phóng XP độ kiếp, dùng vật phẩm (`!heal`), phát thưởng (`reward_ledger`), lưu immutable outcome snapshot, chuyển trạng thái session/event, thao tác GM audit.
   - *Periodic Checkpoint (mỗi 10 giây):* Gom ghi nhận XP tích lũy từ auto-cultivation trong bộ nhớ để giảm IOPS đĩa và kéo dài tuổi thọ SSD, đồng thời xả ngay (flush) khi dừng phiên, pause hoặc có sự kiện đột phá/boss.
 
 ---
 
-## 4. Đồng bộ trạng thái Backend → Frontend (Snapshot & Delta Protocol)
+## 4. Đồng bộ trạng thái Backend → Frontend (Snapshot & Delta Protocol — `HIGH-006`)
 
-- Backend duy trì một bộ đếm `state_revision: uint64` tăng đơn điệu cho từng phiên live.
-- **Luồng kết nối mới / Reconnect:**
-  1. Renderer mở WebSocket `/ws/renderer?session_id=<id>`.
-  2. Backend gửi gói `STATE_SNAPSHOT` đầy đủ chứa: `revision`, `session_state`, `world_config`, danh sách `entities` đang hoạt động, `active_event`, `camera_state`, `overlay_queue`, `asset_bindings`.
-  3. Các thay đổi tiếp theo gửi dưới dạng `STATE_DELTA` (`from_revision`, `to_revision`, danh sách ops: `entity_upsert`, `entity_remove`, `event_update`, `camera_intent`, `overlay_push`, `vfx_trigger`, `audio_trigger`).
-- **Xử lý mất gói / Lệch Revision:**
-  - Nếu Renderer nhận delta có `to_revision <= last_applied_revision`: **bỏ qua (idempotent)**.
-  - Nếu `from_revision > last_applied_revision`: phát hiện gap → Renderer tự gửi `SNAPSHOT_REQUEST` để đồng bộ lại toàn bộ trạng thái mà không reset gameplay ở Backend.
+Backend là nguồn sự thật duy nhất; Renderer tuyệt đối không quyết định gameplay state. Mọi gói tin trên `/ws/renderer` bắt buộc mang đủ bộ định danh đồng bộ:
+- **`stream_epoch`:** UUID/generation ID sinh mới mỗi khi Backend khởi động lại hoặc reset state stream.
+- **`session_id`:** Định danh phiên đang hoạt động.
+- **`revision` (`uint64`):** Số phiên bản trạng thái tăng đơn điệu trong cùng `(stream_epoch, session_id)`.
+- **`snapshot_seq` (`uint64`):** Thứ tự tăng đơn điệu của gói `STATE_SNAPSHOT` trong cùng `stream_epoch`.
+- **`request_id`:** Correlation ID gắn khớp giữa `SNAPSHOT_REQUEST` và gói `STATE_SNAPSHOT` phản hồi.
+
+### 4.1 Vòng đời Resync phía Renderer (Resync Lifecycle)
+```text
+DISCONNECTED → CONNECTING → AWAITING_SNAPSHOT → SYNCED ⇄ RESYNCING → DISCONNECTED
+```
+1. Khi mới kết nối hoặc reconnect (sau mất mạng hoặc Backend restart), Renderer đặt trạng thái `AWAITING_SNAPSHOT`, bỏ qua mọi `STATE_DELTA` đến sớm và gửi `SNAPSHOT_REQUEST(request_id, reason="initial"|"reconnect")`.
+2. Khi nhận `STATE_SNAPSHOT`:
+   - **Stale Snapshot Handling:** Bỏ qua nếu cùng `stream_epoch` và `snapshot_seq < last_applied_snapshot_seq` hoặc `revision < last_applied_revision` (nếu `stream_epoch` khác với `current_epoch`, coi là Backend restart → xóa sạch scene state cũ và chấp nhận snapshot mới).
+   - Khi hợp lệ: cập nhật `current_epoch`, `current_session_id`, `last_applied_snapshot_seq`, `last_applied_revision = snapshot.revision`, dựng lại scene và chuyển `SYNCED`.
+3. Khi đang `SYNCED` và nhận `STATE_DELTA(stream_epoch, session_id, from_revision, to_revision, ops)`:
+   - **Quy tắc áp dụng duy nhất:** Chỉ apply delta khi **đồng thời thỏa mãn**: `delta.stream_epoch == current_epoch` **AND** `delta.session_id == current_session_id` **AND** `delta.from_revision == last_applied_revision` **AND** `delta.to_revision > delta.from_revision`.
+   - **Epoch / Session Mismatch (Backend restart hoặc đổi phiên):** Xóa cache hiển thị cục bộ, chuyển `RESYNCING` và gửi `SNAPSHOT_REQUEST(reason="epoch_or_session_mismatch")`.
+   - **Duplicate Delta (`to_revision <= last_applied_revision` cùng epoch/session):** Bỏ qua an toàn (idempotent no-op).
+   - **Overlapping Revision (`from_revision < last_applied_revision < to_revision`):** Từ chối apply cục bộ, chuyển `RESYNCING` và gửi `SNAPSHOT_REQUEST(reason="overlap_detected")`.
+   - **Revision Gap (`from_revision > last_applied_revision`):** Không suy đoán hay bỏ bước; chuyển `RESYNCING` và gửi `SNAPSHOT_REQUEST(reason="gap_detected")`.
 - **Bảo mật dữ liệu truyền:** Tuyệt đối chỉ serialize DTO dành cho hiển thị (display name đã sanitize/truncate 20 ký tự, realm, vị trí, trạng thái). Không bao giờ đưa `external_user_id` thô nhạy cảm, token hay audit nội bộ vào stream Renderer.
 
 ---
@@ -95,7 +118,12 @@ PRAGMA temp_store = MEMORY;
   3. **Frustum Culling & Object Pooling:** Tắt update animation matrix cho mesh ngoài camera frustum; pool sẵn toàn bộ VFX particles và DOM/Canvas nameplates (chỉ hiện tối đa N nameplate gần camera hoặc nhân vật được `!find`).
   4. **Resource Cleanup bắt buộc:** Khi đổi game, reload asset hoặc đóng ứng dụng, giải phóng đầy đủ `geometry.dispose()`, `material.dispose()`, `texture.dispose()`, `renderTarget.dispose()`, hủy `requestAnimationFrame` và đóng WebSocket để chống rò rỉ VRAM/RAM trên các phiên live kéo dài nhiều giờ.
 
-### 5.4 Camera Director State Machine
+### 5.4 Camera Director & Tách biệt 3 Hàng chờ (`MEDIUM-002`)
+Để tránh nghẽn gameplay khi có nhiều sự kiện cá nhân cùng lúc (ví dụ 20 yêu cầu Tiểu Thiên Kiếp), hệ thống tách biệt tuyệt đối **3 hàng chờ độc lập**:
+1. **Gameplay Execution Queue** (bền vững ở tầng Plugin/DB, ví dụ FIFO hàng chờ độ kiếp): quyết định thứ tự thực thi nghiệp vụ và giữ tài nguyên.
+2. **Camera Focus Queue** (`Camera Director`, ephemeral): quyết định góc máy hiển thị — **không bắt buộc mọi sự kiện cá nhân phải được chiếu bằng camera chính** (có thể chiếu qua PiP tùy chọn hoặc để nền nếu camera chính đang ưu tiên cao hơn).
+3. **Event Presentation Queue** (`Overlay Engine`, ephemeral có TTL): quản lý thẻ thông tin, toast gộp và feed hiển thị.
+
 - Quản lý 5 camera ảo (`CAM01`..`CAM05`) trên một mảng cấu hình định nghĩa bởi Map/Plugin.
 - **Thuật toán chọn shot:**
   - Nhận `CameraIntent(camera_id, target_entity_id, priority, duration_ms, ttl_ms)`.
@@ -106,25 +134,36 @@ PRAGMA temp_store = MEMORY;
 
 ---
 
-## 6. Phục hồi sau sự cố & Tắt ứng dụng an toàn (Crash Recovery & Graceful Shutdown)
+## 6. Phục hồi sau sự cố & Tắt ứng dụng an toàn (Crash Recovery & Graceful Shutdown — `HIGH-005`)
 
-### 6.1 Khởi động lại sau Crash (Startup Recovery Routine)
-Khi Backend khởi động và mở SQLite:
-1. Kiểm tra các `game_sessions` có trạng thái `RUNNING` hoặc `PAUSING` chưa đóng: chuyển sang `INTERRUPTED_RECOVERED` (cho phép GM chọn resume phiên hoặc mở phiên mới, không reset tiến trình người chơi).
-2. Kiểm tra các event đang dở dang (`ANNOUNCING`, `REGISTRATION`, `PREPARING`, `ACTIVE`):
-   - Chuyển trạng thái sang `CANCELED_RECOVERY`.
-   - Giải phóng toàn bộ `xp_reserved` đang giữ trong `g_cultivation_tribulation_queue` và `g_cultivation_progress` trong cùng transaction (không phạt người chơi vì lỗi hệ thống).
-   - Không phát thưởng mới cho event chưa tới bước `REWARDING`.
-3. Kiểm tra các event dừng ở trạng thái `REWARDING`:
-   - Tiếp tục phát thưởng idempotent dựa trên `outcome_snapshot` đã lưu và khóa duy nhất `(event_id, player_id, reward_kind)` trong `reward_ledger`; hoàn tất chuyển `COMPLETED`.
-4. Đặt trạng thái runtime của mọi nhân vật về `OFFLINE/IDLE` (không cộng tu vi bù cho khoảng thời gian server tắt).
+### 6.1 Phân tách Trách nhiệm Recovery (Platform Core vs Game Plugin)
+- **Platform Recovery Core (`Game Session Manager`) tuyệt đối không hardcode logic gameplay hay tên bảng của Tu Tiên Online (`g_cultivation_*`).**
+- Khi khởi động lại sau crash, Platform thực hiện đúng 2 bước trong transaction tuần tự qua SQLite Write Coordinator:
+  1. **Platform Level:** Quét các `game_sessions` ở trạng thái chưa kết thúc (`RUNNING`, `PAUSED`, `PAUSED_ERROR`, `STOPPING`) → chuyển sang `INTERRUPTED_RECOVERED` (cho phép GM chọn mở phiên mới, không reset tiến trình người chơi) và đánh dấu các `scheduled_events` chưa kết thúc cần ủy thác xử lý.
+  2. **Plugin Level Delegation:** Với từng `plugin_id` có phiên/event gián đoạn, Platform gọi `plugin.recover_after_crash(uow, RecoveryContext(session_id, reward_ledger))`. Chính Plugin tự xử lý bảng domain riêng (hoàn tài nguyên đang giữ, xử lý outcome snapshot, trả thưởng idempotent qua `RewardLedger`).
 
-### 6.2 Quy trình tắt ứng dụng sạch (Graceful Shutdown)
+### 6.2 Ma trận Phục hồi Trạng thái Sự kiện (Event Crash Recovery Matrix)
+Quy tắc **Immutable Outcome Snapshot Transaction**: Trước khi bất kỳ sự kiện có thưởng nào bước vào pha phát thưởng (`REWARDING`), hệ thống bắt buộc commit một **`outcome_snapshot_json` bất biến** kèm cờ `outcome_committed = 1` (chứa kết quả cuối, danh sách người đủ điều kiện và danh sách phần thưởng xác định) trong **1 SQLite transaction nguyên tử**.
+
+| Trạng thái lúc Crash | `outcome_committed` | Hành động Recovery bắt buộc | Chính sách Thưởng & Tài nguyên giữ |
+|---|---|---|---|
+| `SCHEDULED` | `0` | Chuyển `CANCELED_RECOVERY` (hoặc hủy lịch phiên cũ) | Không phát thưởng; không có tài nguyên giữ |
+| `ANNOUNCING` / `REGISTRATION` / `PREPARING` / `ACTIVE` | `0` | Chuyển `CANCELED_RECOVERY`; gọi plugin refund handler | Không phát thưởng mới; hoàn trả **100%** tài nguyên/XP đang giữ (không phạt) |
+| `RESOLVING` *(pre-commit)* | `0` | Outcome chưa commit → coi như chưa phân định; chuyển `CANCELED_RECOVERY` + gọi plugin refund handler | Không phát thưởng; hoàn trả **100%** tài nguyên/XP đang giữ |
+| `RESOLVING` *(post-commit)* | `1` | Outcome bất biến đã commit → chuyển tiếp sang `REWARDING` và chạy payout idempotent | Chạy `RewardLedger.grant_idempotent()` theo `outcome_snapshot_json` → `COMPLETED` |
+| `REWARDING` | `1` | Tiếp tục phát thưởng idempotent từ `outcome_snapshot_json` đã lưu → hoàn tất chuyển `COMPLETED` | Khóa duy nhất `(event_id, player_id, reward_kind)` ngăn phát trùng 100%; giữ nguyên các bản ghi đã commit |
+| `COMPLETED` | `1` | Terminal state — **No-op** (không chạy lại) | Bảo toàn nguyên vẹn lịch sử và sổ cái |
+| `CANCELED` / `CANCELED_RECOVERY` | `0` | Terminal state — **No-op** (xác minh không còn tài nguyên bị kẹt) | Không phát thưởng; không phạt lại |
+| `FAILED` | `0` hoặc `1` | Terminal state — **No-op** (nếu đã có outcome thất bại hợp lệ và chưa phát thưởng an ủi trong `REWARDING`, xử lý theo nhánh `REWARDING` trên; đã chốt kết thúc thì không chạy lại) | Không phát thưởng trùng |
+
+- Sau khi recovery xong, mọi thực thể nhân vật trong phiên cũ được đặt về trạng thái nghỉ `OFFLINE/IDLE` (không cộng tu vi bù cho khoảng thời gian server tắt).
+
+### 6.3 Quy trình tắt ứng dụng sạch (Graceful Shutdown)
 Khi nhận `SIGINT`/`SIGTERM` hoặc nút thoát từ Desktop UI:
-1. Ngừng tiếp nhận sự kiện mới từ Event Gateway.
-2. Đóng băng Simulation Clock, hủy an toàn các event chưa kết thúc theo luật refund.
-3. Flush toàn bộ XP checkpoint và ghi nhận `session.ended_at` + `audit_logs`.
-4. Đóng toàn bộ WebSocket clients, giải phóng SQLAlchemy engine/connection pool (`PRAGMA wal_checkpoint(TRUNCATE)`).
+1. Ngừng tiếp nhận sự kiện mới từ Event Gateway và đóng cổng nhận write job mới.
+2. Đóng băng `SimulationClock`, gọi `plugin.on_session_stop()` để hủy an toàn các event chưa kết thúc theo luật refund.
+3. Flush toàn bộ checkpoint còn lại và ghi nhận `session.state = 'COMPLETED'`, `session.ended_at` + `audit_logs`.
+4. Đóng toàn bộ WebSocket clients, drain write queue, chạy `PRAGMA wal_checkpoint(TRUNCATE)` và giải phóng SQLAlchemy engine/connection pool.
 5. Đảm bảo không còn orphan subprocess (Uvicorn/Vite/Qt WebEngine) tồn tại sau khi thoát.
 
 ---

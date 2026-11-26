@@ -66,7 +66,8 @@ D:\Tiktok Mini Game\
 - [docs/CHANGELOG.md](docs/CHANGELOG.md) — Lịch sử thay đổi.
 
 ### Thiết kế Platform (`docs/platform/`)
-- [docs/platform/TDD.md](docs/platform/TDD.md) — Technical Design Document (Runtime, Shared World, Concurrency, Recovery).
+- [docs/platform/GD01_SCOPE.md](docs/platform/GD01_SCOPE.md) — Đặc tả phạm vi đóng khung cho `GD01` (đồng bộ với `docs/ROADMAP.md`).
+- [docs/platform/TDD.md](docs/platform/TDD.md) — Technical Design Document (SQLite Single Writer, Snapshot/Delta Epoch, Shared World, Recovery Matrix).
 - [docs/platform/MODULE_DESIGN.md](docs/platform/MODULE_DESIGN.md) — Thiết kế chi tiết 37 module Platform.
 - [docs/platform/DATABASE_DESIGN.md](docs/platform/DATABASE_DESIGN.md) — Thiết kế CSDL Platform + GAME001, ERD, Migration & Isolation.
 - [docs/platform/GAME_PLUGIN_CONTRACT.md](docs/platform/GAME_PLUGIN_CONTRACT.md) — Hợp đồng Game Plugin (Manifest, Lifecycle, State, Intents).
@@ -83,3 +84,5 @@ D:\Tiktok Mini Game\
 - [docs/GD00_ENVIRONMENT_REPORT.md](docs/GD00_ENVIRONMENT_REPORT.md) — Báo cáo kiểm tra môi trường & phần cứng thực tế (gồm `nvidia-smi`).
 - [docs/GD00_DELIVERY_REPORT.md](docs/GD00_DELIVERY_REPORT.md) — Báo cáo bàn giao GD00 và đánh giá Acceptance Criteria.
 - [docs/GD00_FIX01_REPORT.md](docs/GD00_FIX01_REPORT.md) — Báo cáo giải quyết các quyết định mở `GD00-FIX01` (`ADR-007`, `CONF-04`, hardware, performance targets).
+- [docs/GD00_INDEPENDENT_REVIEW.md](docs/GD00_INDEPENDENT_REVIEW.md) — Kết quả kiểm chứng độc lập các design findings (`HIGH-001`..`LOW-001` + Cross-Check).
+- [docs/GD00_FIX02_REPORT.md](docs/GD00_FIX02_REPORT.md) — Báo cáo bàn giao `GD00-FIX02` giải quyết toàn bộ finding trước khi sang GD01.

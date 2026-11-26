@@ -77,11 +77,21 @@
 
 ---
 
-## 4. Thông số chưa được xác minh (Unverified Parameters — GDD Mục 21)
+## 4. Thông số chưa được xác minh, Rủi ro Cân bằng & Mở rộng Hàng chờ (Unverified Parameters — GDD Mục 21, `MEDIUM-001`, `MEDIUM-002`)
 
-Toàn bộ các thông số sau được ghi nhận rõ là **đề xuất thiết kế chưa xác minh (Unverified / Playtest Proposed)**, không được xem là số đo thực tế hay quyết định đã khóa:
+Toàn bộ các thông số sau được ghi nhận rõ là **đề xuất thiết kế chưa xác minh (Unverified / Playtest Proposed)**, không được xem là số đo thực tế hay quyết định đã khóa (và **tuyệt đối không tự ý thay đổi công thức GDD gốc** khi chưa có phê duyệt):
 1. **Quyền tích hợp TikTok LIVE thật:** Khả năng nhận comment/gift/like/join ổn định và điều kiện phát game tự động trên tài khoản thực tế → `UNVERIFIED` (chờ GD17).
 2. **Mục tiêu 100 nhân vật @ 30/60 FPS (`1080×1920`), Single WebGLRenderer, max 1 PiP, LOD, Resource Disposal & Phiên chạy liên tục 4 giờ + OBS:** Chưa có benchmark thực tế (máy dev hiện tại dùng RTX 4050 Laptop với `6141 MiB` tổng VRAM / `5820 MiB` khả dụng theo `nvidia-smi`, RAM khả dụng `3.14/15.73 GB`) → `UNVERIFIED` (chờ GD09/GD19).
-3. **Thông số cân bằng số học:** Tốc độ `2 XP/s`, chi phí cảnh giới `100..3200`, `Boss HP = 500 + 180×N`, `DEF = 8`, sát thương phản công Boss, thiên lôi `17%/22%`, chính sách `auto-hộ thể` mặc định ON, idle `5m`/ẩn `10m` → `PROPOSED` (cần playtest và lưu theo `config_schema_version`).
-4. **Phong cách mỹ thuật, tên gọi & Bản quyền Asset:** Phong cách Chibi, tên Thanh Vân Tông / Bạch Lang Vương chờ duyệt cuối; rig `humanoid_chibi_v1`, LOD `5-8k / 2-3k / 0.5-1k`, bản quyền nhạc/SFX/model → `UNVERIFIED` cho tới khi qua `Asset Validator` (`GD07` / `TT-AS`).
-5. **Semantics Gift Streak của Provider:** Cơ chế chống trùng lặp gift streak phụ thuộc nhà cung cấp thực tế → `UNVERIFIED` (chờ GD17).
+3. **Rủi ro Cân bằng World Boss & Yêu cầu Combat Balance Simulator tại GD13 (`MEDIUM-001`):**
+   - *Rủi ro đã phân tích trên công thức GDD gốc (`Boss HP = 500 + 180×N`, `DEF = 8`, phản công `max(1, floor(24 + 2×min(N,20) - DEF))` mỗi 6s):*
+     - **Nhóm Phàm Nhân có thể không đủ sát thương:** Với `ATK = 12` (Kiếm Tu `14`), `auto_dmg = max(1, floor(ATK - 8))` chỉ đạt `4–6 dmg` mỗi 2s (~`240–360 dmg` nếu sống đủ 120s), trong khi mỗi người bổ sung `180 HP` + phần gốc `500 HP` cho Boss.
+     - **Boss scaling có thể không phù hợp phân bố cảnh giới:** Công thức chỉ nhân theo số lượng `N` mà không tính trọng số cảnh giới (nhóm toàn Phàm Nhân/Luyện Khí có DPS thấp hơn rất nhiều so với nhóm Trúc Cơ/Kim Đan).
+     - **Người chơi mới có thể tử trận sớm:** Phàm Nhân (`100 HP`, `DEF = 4`) chịu `22–60 dmg` mỗi đòn phản công 6s có thể bị hạ gục chỉ sau 2–5 lượt phản công nếu không có Đan Tu hồi máu hoặc `!defend`/`!heal`.
+   - *Hành động bắt buộc tại `GD13` (không tự ý sửa công thức GDD trong GD00):* Triển khai **Combat Balance Simulator** mô phỏng đầy đủ các nhóm `N = 1, 5, 10, 20, 50, 100` người chơi, đa cảnh giới (thuần Phàm Nhân / Luyện Khí / Trúc Cơ / Kim Đan / hỗn hợp), đa nghề (Kiếm/Đan/Thể Tu), các chế độ (auto-attack only, active skills, mixed player activity, boss retaliation) để xuất số liệu playtest trình chủ dự án duyệt.
+4. **Phân tách 3 Hàng chờ Tiểu Thiên Kiếp & Đánh giá Độ trễ Hàng chờ tại GD14 (`MEDIUM-002`):**
+   - Giữ nguyên luật MVP hiện tại (`max 1` kiếp active, FIFO tối đa `20`, không đổi balance).
+   - Tách rõ **3 hàng chờ độc lập**: (1) *Gameplay Execution Queue* (`g_cultivation_tribulation_queue`), (2) *Camera Focus Queue* (`Camera Director` — **không bắt buộc mọi sự kiện cá nhân phải chiếu trên camera chính**), và (3) *Event Presentation Queue* (`Overlay Engine` có TTL).
+   - *Yêu cầu đánh giá tại `GD14`:* Đo thực tế **queue waiting time** (khi 20 người xếp hàng nối tiếp ~30s/lượt, người thứ 20 có thể chờ ~10 phút, chưa tính thời gian nhường Boss).
+   - *Đề xuất mở rộng hậu MVP (Future Extension, không làm trong MVP):* Hỗ trợ **Parallel / Batch Tribulation** (nhiều vị trí trên Độ Kiếp Đài chạy đồng thời theo lô, hiển thị gộp qua PiP/overlay) nếu playtest cho thấy thời gian chờ quá cao.
+5. **Phong cách mỹ thuật, tên gọi & Bản quyền Asset:** Phong cách Chibi, tên Thanh Vân Tông / Bạch Lang Vương chờ duyệt cuối; rig `humanoid_chibi_v1`, LOD `5-8k / 2-3k / 0.5-1k`, bản quyền nhạc/SFX/model → `UNVERIFIED` cho tới khi qua `Asset Validator` (`GD07` / `TT-AS`).
+6. **Semantics Gift Streak của Provider:** Cơ chế chống trùng lặp gift streak phụ thuộc nhà cung cấp thực tế → `UNVERIFIED` (chờ GD17).

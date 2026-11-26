@@ -57,16 +57,16 @@
 - **Development phase:** `GD01`.
 
 #### 4. Database Manager (`core/database`)
-- **Responsibility:** Quản lý SQLAlchemy 2.x engine cho SQLite, áp dụng PRAGMA bắt buộc (`WAL`, `foreign_keys=ON`, `busy_timeout`), cung cấp `UnitOfWork`, hỗ trợ Alembic migration và local backup.
-- **Inputs:** Database path từ Configuration Manager, Alembic migration scripts.
-- **Outputs:** Transactional sessions, backup snapshots, DB health diagnostics.
+- **Responsibility:** Quản lý SQLAlchemy 2.x engine cho SQLite, áp dụng PRAGMA bắt buộc (`WAL`, `foreign_keys=ON`, `busy_timeout`), vận hành **database-wide centralized write coordinator** (bounded write queue / global write serializer đảm bảo tối đa **1 write transaction hoạt động trên toàn DB tại một thời điểm** — không coi per-player lock là đủ cho SQLite), cung cấp `UnitOfWork` có transaction timeout, hỗ trợ Alembic migration và local backup.
+- **Inputs:** Database path từ Configuration Manager, Alembic migration scripts, write/read transaction callables.
+- **Outputs:** Serialized transactional sessions, backup snapshots, DB health & write-queue metrics.
 - **Dependencies:** Configuration Manager, Logging System.
-- **Public interfaces:** `DatabaseManager.session()`, `UnitOfWork.commit()`, `UnitOfWork.rollback()`, `DatabaseManager.verify_schema()`, `DatabaseManager.create_backup()`.
+- **Public interfaces:** `DatabaseManager.read_session()`, `DatabaseManager.write_transaction(timeout_ms)`, `UnitOfWork.commit()`, `UnitOfWork.rollback()`, `DatabaseManager.verify_schema()`, `DatabaseManager.shutdown()`, `DatabaseManager.create_backup()`.
 - **Data ownership:** Toàn bộ kết nối vật lý tới tệp SQLite cục bộ.
-- **Failure handling:** Tự rollback khi exception; retry có giới hạn với lỗi transient lock; fail-safe nếu schema version lệch Alembic head.
+- **Failure handling:** Tự rollback ngay khi exception hoặc vượt transaction timeout; từ chối có cấu trúc khi bounded write queue đầy; drain sạch hàng đợi ghi và chạy `PRAGMA wal_checkpoint(TRUNCATE)` khi graceful shutdown.
 - **Security boundaries:** Chỉ Backend process được ghi (`ADR-014`); ngăn đường dẫn DB thoát khỏi thư mục dữ liệu cấu hình.
-- **Testing strategy:** Integration test persistence qua restart, FK enforcement, WAL mode, rollback nguyên tử và Alembic upgrade/downgrade.
-- **Development phase:** `GD01` (smoke SQLite), `GD02` (Alembic & full UoW).
+- **Testing strategy:** Integration test persistence qua restart, FK enforcement, WAL mode, concurrent multi-player write serialization không gây `SQLITE_BUSY`, transaction timeout rollback và Alembic upgrade/downgrade.
+- **Development phase:** `GD01` (SQLite smoke test), `GD02` (Alembic, centralized single-writer coordinator & full UoW).
 
 #### 5. Application Services (`modules/application_services`)
 - **Responsibility:** Lớp điều phối use-case giữa API/UI và các domain module (orchestration, transaction boundary, authorization check cho hành động GM, phát audit log).
@@ -92,7 +92,7 @@
 - **Public interfaces:** `load_plugin(plugin_id)`, `activate_plugin(plugin_id, session_ctx)`, `deactivate_plugin()`, `get_active_plugin()`.
 - **Data ownership:** Trạng thái runtime plugin trong bộ nhớ; cập nhật trạng thái kích hoạt trong `game_plugins`.
 - **Failure handling:** Nếu plugin lỗi khi nạp hoặc vượt ngưỡng exception trong runtime, cách ly và chuyển session sang `PAUSED_ERROR`, không crash Backend.
-- **Security boundaries:** Chỉ nạp **trusted built-in plugins** trong allowlist `games/` (`ADR-010`); từ chối tuyệt đối dynamic import ngoài đường dẫn cho phép.
+- **Security boundaries:** Chỉ nạp **trusted built-in plugins** khớp chính xác **bảng static allowlist (`TRUSTED_BUILTIN_PLUGINS`)** (`ADR-010`) — không chỉ dựa vào kiểm tra tiền tố đường dẫn module; từ chối tuyệt đối dynamic import ngoài allowlist.
 - **Testing strategy:** Contract tests bằng fake/dummy plugin thứ 2 (`dummy_test_game`) cùng song song với `cultivation_online`.
 - **Development phase:** `GD05`.
 
@@ -115,7 +115,7 @@
 - **Dependencies:** Database Manager, Game Plugin Manager, Logging System, Audit Logs.
 - **Public interfaces:** `create_session(plugin_id, world_scope)`, `start_session(id)`, `pause_session(id, reason)`, `resume_session(id)`, `stop_session(id)`, `recover_interrupted_sessions()`.
 - **Data ownership:** Bảng `game_sessions`.
-- **Failure handling:** Crash recovery tự hủy event dở dang thành `CANCELED_RECOVERY`, giải phóng XP giữ, tiếp tục `REWARDING` idempotent.
+- **Failure handling:** Crash recovery ở tầng Platform chuyển session gián đoạn (`RUNNING`/`PAUSED`/`PAUSED_ERROR`/`STOPPING`) sang `INTERRUPTED_RECOVERED` và **ủy thác cho từng plugin qua `plugin.recover_after_crash(uow, ctx)`** — tuyệt đối không hardcode logic hay tên bảng của Tu Tiên Online trong Platform core (`ADR-018`).
 - **Security boundaries:** Chỉ cho phép tối đa 1 phiên `RUNNING` cùng lúc trên một instance Desktop; mọi lệnh dừng/hủy ghi `audit_logs`.
 - **Testing strategy:** Integration test state machine, clock freeze khi PAUSE, restart recovery và không mất dữ liệu tiến trình.
 - **Development phase:** `GD02` (schema & CRUD), `GD05` (tick loop & plugin binding), `GD12` (recovery tích hợp).
@@ -131,7 +131,7 @@
 - **Dependencies:** Database Manager, Event Bus, Logging System.
 - **Public interfaces:** `ingest(raw_event, source_adapter)`, `get_ingestion_stats()`, `is_duplicate(source_ns, source_event_id)`.
 - **Data ownership:** Bảng `event_ingestions`, `processed_events`.
-- **Failure handling:** Sự kiện sai schema hoặc thiếu trường bắt buộc bị reject và tăng counter lỗi (không drop im lặng, không crash).
+- **Failure handling:** Sự kiện sai schema hoặc thiếu trường bắt buộc bị reject và tăng counter lỗi; khi `Event Bus` đạt `100%` thực hiện admission control trả mã tường minh `INGESTION_QUEUE_FULL` (`HTTP 429`) với enqueue timeout hữu hạn (`50ms`, retry `<=2`), ghi `REJECTED_BACKPRESSURE` — **không block vô hạn và không âm thầm drop lệnh gameplay**.
 - **Security boundaries:** Kiểm tra chữ ký/nguồn adapter hợp lệ; cắt ngắn payload quá cỡ (DoS protection); không suy diễn ID khi provider không cung cấp ID ổn định.
 - **Testing strategy:** Unit + integration test dedupe, malformed payload, replay cùng `source_event_id`.
 - **Development phase:** `GD04`.
@@ -143,7 +143,7 @@
 - **Dependencies:** Logging System.
 - **Public interfaces:** `publish(topic, event, priority)`, `subscribe(topic, handler)`, `get_queue_depth()`, `drain()`.
 - **Data ownership:** Bộ đệm hàng đợi trong bộ nhớ (ephemeral; dữ liệu bền vững đã nằm ở `event_ingestions`).
-- **Failure handling:** Khi đầy hàng đợi (backpressure), áp dụng drop/coalesce chính sách cho sự kiện ưu tiên thấp (like/cosmetic/info) trước, bảo vệ lệnh gameplay quan trọng và phát cảnh báo metrics.
+- **Failure handling:** Áp dụng load shedding theo tầng ưu tiên (`70%` gộp like/cosmetic, `90%` từ chối lệnh hiển thị phụ với `SYSTEM_BUSY`, `100%` từ chối tường minh `INGESTION_QUEUE_FULL` kèm metrics & auditability — không silent drop lệnh gameplay).
 - **Security boundaries:** Giới hạn kích thước queue tối đa để chống OOM khi spam burst.
 - **Testing strategy:** Stress test `100 events/s` trong 30s, kiểm tra ordering và backpressure metrics.
 - **Development phase:** `GD04`.
@@ -161,7 +161,7 @@
 - **Development phase:** `GD04`.
 
 #### 12. Command Parser (`modules/command_parser`)
-- **Responsibility:** Phân tích bình luận thành lệnh có cấu trúc (`ParsedCommand`) bằng quy tắc tường minh (case-insensitive, trim, alias Tiếng Việt có dấu theo bảng ánh xạ do plugin đăng ký). **Tuyệt đối không dùng LLM.**
+- **Responsibility:** Phân tích bình luận thành lệnh có cấu trúc (`ParsedCommand`) bằng quy tắc tường minh (case-insensitive, trim, alias Tiếng Việt có dấu, subcommand/arguments) **nạp động 100% từ tệp `commands.json` của từng plugin — tuyệt đối không hardcode lệnh của `cultivation_online` trong Platform và không dùng LLM**.
 - **Inputs:** `NormalizedEvent` loại `comment`, bảng khai báo lệnh & aliases của active plugin.
 - **Outputs:** `ParsedCommand(command_key, args, raw_text)` hoặc `None` (bình luận thường bỏ qua).
 - **Dependencies:** Game Plugin Manager (lấy command registry).
@@ -197,7 +197,7 @@
 - **Development phase:** `GD12`.
 
 #### 15. Event Queue (`modules/event_queue`)
-- **Responsibility:** Quản lý các hàng chờ hữu hạn có thứ tự xác định (FIFO theo `(received_at_monotonic, player_id)`), chống đăng ký trùng và áp dụng giới hạn kích thước/TTL.
+- **Responsibility:** Quản lý các hàng chờ hữu hạn có thứ tự xác định (FIFO theo `(received_at_monotonic, player_id)`), chống đăng ký trùng, áp dụng giới hạn kích thước/TTL và **tách biệt rõ 3 loại hàng chờ** (`Gameplay Execution Queue`, `Camera Focus Queue`, `Event Presentation Queue` — `ADR-020`).
 - **Inputs:** Yêu cầu xếp hàng từ Plugin/Overlay/Camera (ví dụ hàng chờ Tiểu Thiên Kiếp tối đa 20, hàng chờ `!info` tối đa 20, `!find` tối đa 10).
 - **Outputs:** Phần tử kế tiếp hợp lệ, trạng thái vị trí hàng chờ, mã từ chối `QUEUE_FULL` / `ALREADY_QUEUED`.
 - **Dependencies:** Logging System.
@@ -377,7 +377,7 @@
 - **Development phase:** `GD07`.
 
 #### 29. Asset Registry (`modules/asset_registry`)
-- **Responsibility:** Lưu trữ metadata, lịch sử phiên bản (semver), đồ thị phụ thuộc (`asset_dependencies`) và kiểm tra tính sẵn sàng tài nguyên của một Game Plugin trước khi chạy phiên.
+- **Responsibility:** Lưu trữ metadata, lịch sử phiên bản (semver), đồ thị phụ thuộc (`asset_dependencies`) và kiểm tra tính sẵn sàng tài nguyên của một Game Plugin theo chế độ `DEVELOPMENT` (cho phép placeholder tương thích kèm cảnh báo) vs `PRODUCTION` (bắt buộc tồn tại đủ `required_assets`, `validation_status=VALID`, không tự bỏ qua dependency thiếu — `ADR-016`).
 - **Inputs:** Dữ liệu asset đã qua kiểm định từ Asset Importer; danh sách phụ thuộc từ Game Plugin manifest.
 - **Outputs:** Danh mục phiên bản active/deprecated, báo cáo thiếu hụt phụ thuộc (`MissingAssetReport`).
 - **Dependencies:** Database Manager.
@@ -447,8 +447,8 @@
 - **Dependencies:** Game Session Manager, Asset Registry, OBS Integration, Analytics, TikTok Connector.
 - **Public interfaces:** `get_readiness_check()`, `get_broadcast_url()`, `get_live_status()`.
 - **Data ownership:** Cấu hình preset phát sóng trong `application_settings`.
-- **Failure handling:** Cảnh báo đỏ rõ ràng nếu thiếu thành phần bắt buộc (ví dụ chạy bằng Simulator thay vì Live Connector) để Host không nhầm lẫn khi lên sóng.
-- **Security boundaries:** URL broadcast chỉ phục vụ trên `127.0.0.1` và không chứa nút hay API điều khiển quản trị.
+- **Failure handling:** Cảnh báo đỏ rõ ràng nếu thiếu thành phần bắt buộc (ví dụ chạy Simulator thay vì Live Connector) và **cấm đánh dấu `PRODUCTION_READY`** khi đang bật `DEVELOPMENT` mode hoặc sử dụng placeholder asset chưa được phê duyệt (`ADR-016`).
+- **Security boundaries:** URL broadcast chỉ phục vụ trên `127.0.0.1`, tuyệt đối **không chứa `ADMIN_SESSION_TOKEN`** và không chứa nút hay API điều khiển quản trị (`ADR-017`).
 - **Testing strategy:** Integration test readiness checklist với từng thành phần online/offline.
 - **Development phase:** `GD18`.
 

@@ -125,9 +125,20 @@ Mọi đường dẫn tệp trong `entry_file`, `lods[].file`, `files[].path`:
 
 ---
 
-## 5. Chính sách Placeholder Assets
+## 5. Chính sách Tài nguyên theo Môi trường (`DEVELOPMENT` vs `PRODUCTION` — `HIGH-002`)
 
+Platform áp dụng hai chế độ vận hành tài nguyên tách biệt, được cấu hình rõ trong `Configuration Manager` (`asset_policy_mode`) và kiểm tra tại `Asset Registry` + `Live Studio` readiness check:
+
+| Quy tắc | Chế độ `DEVELOPMENT` | Chế độ `PRODUCTION` |
+|---|---|---|
+| **Placeholder Assets (`is_placeholder=true`)** | **Cho phép** các placeholder tương thích chuẩn manifest (`asset_manifest.json`) | **Không cho phép** tự động thay thế cho required assets; không được đánh dấu `production-ready` khi đang dùng placeholder chưa được phê duyệt tường minh |
+| **Required Assets của Plugin** | Không yêu cầu production asset; cho phép kiểm thử plugin bằng asset thay thế tương thích | **Bắt buộc tồn tại 100%** mọi `required_assets` có `required: true` trong plugin manifest |
+| **Kiểm định phiên bản & trạng thái** | Cho phép semver pre-release (`0.x.y`) có `validation_status = VALID` | Bắt buộc thỏa mãn `version_constraint`, `validation_status = VALID`, khớp SHA-256 và `license.commercial_livestream_allowed = true` |
+| **Khi thiếu dependency** | Tự fallback sang placeholder tương ứng và hiển thị **cảnh báo nổi bật** (`PLACEHOLDER_ACTIVE`) trên Desktop UI & logs | **Cấm tự động bỏ qua dependency bị thiếu**; chặn chuyển trạng thái `PRODUCTION_READY` và trả `MissingAssetReport` chi tiết cho Host |
+| **Giai đoạn áp dụng chính** | `GD01`–`GD18` (phát triển & kiểm thử, không để production asset chặn tiến độ code) | `GD18`–`GD20` & vận hành livestream thực tế |
+
+### Quy tắc áp dụng Placeholder trong `DEVELOPMENT`
 - Giai đoạn nền tảng (`GD01`–`GD16`) **không phụ thuộc production asset** (`TT-AS01`..`TT-AS09`).
-- Platform cung cấp bộ **Placeholder Assets** tối giản hợp lệ (primitive/low-poly GLB có màu và nhãn phân biệt rõ: nam/nữ, boss, map với đủ 6 zone anchor) được đóng gói đúng chuẩn `asset_manifest.json` (`is_placeholder: true`).
-- Khi thay thế bằng production asset đã kiểm định (`version: 1.0.0`, `is_placeholder: false`), Game Plugin và 3D Runtime **không phải sửa code** — chỉ cập nhật active version trong `Asset Registry`.
-- Nếu production asset bị thiếu hoặc hỏng hash lúc runtime, `Asset Library` tự động fallback sang placeholder tương ứng và hiển thị cảnh báo rõ trên Desktop UI (AC14).
+- Bộ **Placeholder Assets** (tối giản nhưng tuân thủ đầy đủ `asset_manifest.json`, đơn vị mét, Y-up, đủ zone anchors) luôn mang `is_placeholder: true`.
+- Khi nâng cấp lên production asset đã kiểm định (`version: 1.0.0`, `is_placeholder: false`), Game Plugin và 3D Runtime **không phải sửa code** — chỉ chuyển active version trong `Asset Registry`.
+- Trong cả hai chế độ, `Live Studio` readiness checklist bắt buộc hiển thị rõ trạng thái `ASSET_MODE: DEVELOPMENT (PLACEHOLDER)` hoặc `ASSET_MODE: PRODUCTION (VERIFIED)` để Host không bao giờ nhầm lẫn (AC14).

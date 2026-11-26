@@ -63,11 +63,11 @@ Tài liệu ghi nhận toàn bộ quyết định kiến trúc quan trọng củ
 - **Ngày:** 2026-11-26
 - **Quyết định:** Quà tặng trả phí trên TikTok LIVE chỉ được ánh xạ tới hiệu ứng hình ảnh/âm thanh mang tính giải trí (cosmetic) với giới hạn tốc độ và hàng đợi hữu hạn. Tuyệt đối không tác động lên XP, chỉ số nhân vật, kết quả World Boss, xác suất đột phá/độ kiếp hay cơ chế đổi thưởng tiền thật.
 
-## ADR-010: Trusted Built-in Plugins Only ở giai đoạn đầu
-- **Trạng thái:** Accepted
+## ADR-010: Trusted Built-in Plugins Only bằng Static Allowlist
+- **Trạng thái:** Accepted & Hardened (`GD00-FIX02`, 2026-11-26)
 - **Ngày:** 2026-11-26
-- **Quyết định:** `Game Plugin Manager` chỉ nạp các plugin nằm trong danh sách tin cậy (allowlist) thuộc `games/` của kho mã nguồn. Không hỗ trợ nạp file `.py` / `.zip` tùy ý từ bên ngoài trong giai đoạn GD01–GD20.
-- **Lý do:** Ngăn chặn thực thi mã tùy ý (Arbitrary Code Execution) trên máy Windows của người dùng.
+- **Quyết định:** `Game Plugin Manager` chỉ nạp các plugin có cặp `(plugin_id, entrypoint)` khớp chính xác trong **bảng allowlist tĩnh (`TRUSTED_BUILTIN_PLUGINS`)** khai báo trong Platform — **không chỉ dựa vào kiểm tra tiền tố đường dẫn `games.<plugin_id>.`**. Không hỗ trợ nạp file `.py` / `.zip` tùy ý từ bên ngoài trong giai đoạn GD01–GD20.
+- **Lý do:** Ngăn chặn thực thi mã tùy ý (Arbitrary Code Execution) ngay cả khi có file lạ rơi vào thư mục `games/`.
 
 ## ADR-011: Phân tách Simulation Clock (`monotonic`) và Wall-Clock (`UTC`)
 - **Trạng thái:** Accepted
@@ -88,11 +88,13 @@ Tài liệu ghi nhận toàn bộ quyết định kiến trúc quan trọng củ
 - **Ngày:** 2026-11-26
 - **Quyết định:** Không triển khai TikTok Connector thật trước GD17. Mọi kiểm thử từ GD01 đến GD16 chạy trên **Mock Event Provider & Event Simulator**. Khả năng nhận comment, gift, like, join từ TikTok thật được đánh dấu là `UNVERIFIED` cho tới khi xác minh nhà cung cấp chính thức/được cấp quyền cho tài khoản thực tế.
 
-## ADR-014: Tách biệt Quyền truy cập SQLite (Backend-Only Writer)
-- **Trạng thái:** Accepted
+## ADR-014: SQLite Single-Process Writer & Database-Wide Write Serialization (`HIGH-003`)
+- **Trạng thái:** Accepted & Hardened (`GD00-FIX02`, 2026-11-26)
 - **Ngày:** 2026-11-26
-- **Quyết định:** Chỉ tiến trình FastAPI Backend được mở kết nối ghi vào file SQLite. PySide6 Desktop UI và Frontend Renderer giao tiếp 100% qua FastAPI REST/WebSocket (`127.0.0.1`).
-- **Lý do:** Loại bỏ lỗi `SQLITE_BUSY` / lock contention giữa nhiều tiến trình Windows và đảm bảo mọi thay đổi đều đi qua Validation, Transaction Boundary và Audit Log.
+- **Quyết định:**
+  1. Chỉ tiến trình FastAPI Backend được mở kết nối ghi vào tệp SQLite (PySide6 và Renderer giao tiếp 100% qua FastAPI).
+  2. Mọi write transaction trong Backend bắt buộc đi qua **Centralized Write Coordinator** (global write serializer / bounded write queue đảm bảo tối đa **1 write transaction toàn DB tại một thời điểm**) kèm `WAL`, `foreign_keys=ON`, `busy_timeout=5000ms`, `transaction_timeout=5000ms`, rollback tự động và drain + `wal_checkpoint(TRUNCATE)` khi shutdown.
+  3. Khóa theo từng `player_id` **không được coi là đủ** để xử lý tranh chấp ghi của SQLite (chỉ dùng cho thứ tự logic domain). Triển khai tại `GD02`.
 
 ## ADR-015: Chuẩn hóa Lệnh Hộ Thể Tự Động (`!hothe`, `!hotheauto`, `!hotheauto on/off`) — Giải quyết `CONF-04` / `OPEN-05`
 - **Trạng thái:** Accepted & Resolved (`GD00-FIX01`, 2026-11-26)
@@ -103,3 +105,28 @@ Tài liệu ghi nhận toàn bộ quyết định kiến trúc quan trọng củ
   2. **Hộ thể tự động mặc định bật** (`g_cultivation_characters.auto_guard_enabled = 1`); người chơi có thể bật/tắt bằng bình luận; Game Master có thể cấu hình chính sách mặc định cho phiên/lượt kiếp mới.
   3. Toàn bộ tính toán hộ thể và thiên lôi dựa trên **server-side event timing (`SimulationClock`)**, hỗ trợ độ trễ livestream và không yêu cầu phản ứng khớp khung hình animation.
   4. Không thay đổi bất kỳ thông số cân bằng gốc nào của v0.1.0 và tuyệt đối không dùng quà tặng trả phí để tăng xác suất độ kiếp.
+
+## ADR-016: Chính sách Asset theo Chế độ `DEVELOPMENT` vs `PRODUCTION` (`HIGH-002`)
+- **Trạng thái:** Accepted (`GD00-FIX02`, 2026-11-26)
+- **Ngày:** 2026-11-26
+- **Quyết định:** Tách 2 chế độ tài nguyên: `DEVELOPMENT` (cho phép placeholder tương thích kèm cảnh báo nổi bật, không chặn phát triển) và `PRODUCTION` (bắt buộc tồn tại đủ `required_assets` đúng semver, `validation_status=VALID`, cấm tự bỏ qua dependency thiếu và cấm gắn `production-ready` khi dùng placeholder chưa được phê duyệt).
+
+## ADR-017: Mô hình Bảo mật API Cục bộ (`HIGH-004`)
+- **Trạng thái:** Accepted (`GD00-FIX02`, 2026-11-26)
+- **Ngày:** 2026-11-26
+- **Quyết định:** Kết hợp loopback `127.0.0.1`, `TrustedHostMiddleware`, restricted Origin (**cấm wildcard CORS `*`**), khóa phiên ngẫu nhiên mật mã tách quyền `ADMIN_SESSION_TOKEN` (privileged REST + `/ws/admin`) vs `RENDERER_STREAM_TOKEN` (read-only `/ws/renderer` + asset stream), chỉ giữ `GET /api/v1/health` công khai cục bộ tối thiểu, không đặt admin credential vào Broadcast URL, không log credentials và không expose arbitrary file paths.
+
+## ADR-018: Plugin-Delegated Crash Recovery & Immutable Outcome Snapshot (`HIGH-005`)
+- **Trạng thái:** Accepted (`GD00-FIX02`, 2026-11-26)
+- **Ngày:** 2026-11-26
+- **Quyết định:** Platform Recovery Core không hardcode logic hay tên bảng của bất kỳ game nào; mọi sự kiện có thưởng bắt buộc commit `outcome_snapshot_json` bất biến (`outcome_committed=1`) trong 1 transaction trước `REWARDING`. Khi crash, trạng thái chưa commit outcome chuyển `CANCELED_RECOVERY` kèm hoàn tài nguyên giữ qua plugin handler; trạng thái đã commit outcome tiếp tục trả thưởng idempotent qua `RewardLedger`.
+
+## ADR-019: Giao thức Snapshot/Delta có `stream_epoch` & Chống Stale/Overlap (`HIGH-006`)
+- **Trạng thái:** Accepted (`GD00-FIX02`, 2026-11-26)
+- **Ngày:** 2026-11-26
+- **Quyết định:** Mọi gói `/ws/renderer` bắt buộc gắn `stream_epoch`, `session_id`, `revision`, `snapshot_seq` và `request_id`. Renderer chỉ apply delta khi khớp đồng thời `stream_epoch`, `session_id` và `from_revision == last_applied_revision`; mọi mismatch, gap hoặc overlap đều buộc chuyển `RESYNCING` và yêu cầu snapshot mới.
+
+## ADR-020: Tách 3 Hàng chờ Sự kiện & Chính sách Backpressure `100%` (`MEDIUM-002`, `MEDIUM-004`)
+- **Trạng thái:** Accepted (`GD00-FIX02`, 2026-11-26)
+- **Ngày:** 2026-11-26
+- **Quyết định:** Tách biệt Gameplay Execution Queue, Camera Focus Queue và Event Presentation Queue (không ép mọi sự kiện cá nhân lên camera chính). Khi `Event Bus` đạt `100%`, áp dụng Admission Control + Explicit Rejection (`INGESTION_QUEUE_FULL` / `HTTP 429`) có bounded enqueue timeout, metrics và auditability — không silent drop gameplay commands và không block vô hạn Event Gateway.
