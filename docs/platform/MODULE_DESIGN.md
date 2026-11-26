@@ -169,7 +169,7 @@
 - **Data ownership:** Không sở hữu bảng DB; bảng ánh xạ lệnh nạp từ plugin manifest/spec.
 - **Failure handling:** Bình luận không khớp cú pháp trả `None` an toàn; một comment chỉ trích xuất tối đa 1 lệnh hợp lệ đầu tiên.
 - **Security boundaries:** Chặn tham số nhắm tới `player_id` người khác (mọi lệnh tự định tuyến bằng `sender_player_id`); giới hạn độ dài chuỗi parse để chống ReDoS.
-- **Testing strategy:** Unit test toàn bộ 17 lệnh MVP + aliases có dấu/không dấu, ký tự lạ, chuỗi rất dài, HTML injection.
+- **Testing strategy:** Unit test toàn bộ lệnh MVP (bao gồm `!hothe`, `!hotheauto`, `!hotheauto on`, `!hotheauto off` và aliases có dấu/không dấu), ký tự lạ, chuỗi rất dài, HTML injection.
 - **Development phase:** `GD06`.
 
 #### 13. Event Scheduler (`modules/event_scheduler`)

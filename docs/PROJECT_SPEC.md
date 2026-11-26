@@ -68,7 +68,7 @@
 
 ## 5. Đặc tả Vertical Slice: GAME001 — Tu Tiên Online (`cultivation_online`)
 
-*(Trích xuất và đối chiếu từ `GDD_Tu_Tien_Online_v0.1.md`; chi tiết đầy đủ tại `docs/games/cultivation_online/GDD_REQUIREMENTS_MAPPING.md`.)*
+*(Trích xuất và đối chiếu từ `docs/games/cultivation_online/GDD.md` v0.1.1 — Single Source of Truth cho gameplay; chi tiết đầy đủ tại `docs/games/cultivation_online/GDD_REQUIREMENTS_MAPPING.md`.)*
 
 - **Định danh:** `game_id = GAME001`, `plugin_id = cultivation_online`, Thể loại: Interactive Idle RPG, Phong cách: Stylized Chibi 3D Xianxia, Độ phân giải: `1080×1920`.
 - **Mục tiêu đồng thời:** 100 người chơi hoạt động đồng thời (*mục tiêu thiết kế, bắt buộc phải benchmark thực tế tại GD19*).
@@ -87,7 +87,8 @@
 
 | Hạng mục | Yêu cầu mục tiêu | Ghi chú xác minh |
 |---|---|---|
-| **Hiệu năng Render** | 30 FPS ổn định (60 FPS mục tiêu nâng cao) tại `1080×1920` với 100 player logic khi capture OBS | Phải benchmark đo p50/p95 frame time, VRAM, draw calls ở GD19; không khẳng định trước khi đo |
+| **Hiệu năng Render & Broadcast (Mục tiêu benchmark — chưa đo)** | Phát sóng `1080×1920`, mục tiêu `30 FPS` ổn định (`60 FPS` nâng cao) với `100` concurrent active players trên **1 `WebGLRenderer` duy nhất**, tối đa **1 PiP** (tắt được), áp dụng chiến lược **LOD** và **Resource Disposal** sạch | **Mục tiêu kiểm thử, không phải kết quả đã đạt.** Phải benchmark đo p50/p95 frame time, draw calls ở GD19 |
+| **Độ bền phiên dài & Giám sát tài nguyên (Mục tiêu benchmark — chưa đo)** | Chạy phiên liên tục **4 giờ** (4-hour continuous session soak test) có giám sát **CPU, RAM, GPU và VRAM** không rò rỉ bộ nhớ, không suy giảm frame time | Bắt buộc đo và báo cáo kèm cấu hình phần cứng tại GD19 |
 | **Tải sự kiện** | Chịu burst thử nghiệm `100 lệnh/giây` trong 30 giây không mất sự kiện hợp lệ, không crash | Kiểm chứng qua Event Simulator replay ở GD04/GD19 |
 | **Bền vững dữ liệu** | SQLite WAL + Foreign Keys ON; transaction nguyên tử cho đăng ký, XP, đột phá, reward; checkpoint mỗi 10s và khi đổi mốc quan trọng | Kiểm chứng qua crash/restart tests ở GD02, GD11, GD13, GD14 |
 | **Bảo mật Local-first** | Backend chỉ bind `127.0.0.1` theo mặc định; chống path traversal ở Asset/File; escape HTML trên mọi tên hiển thị; redact secrets khỏi logs/UI | Kiểm tra ở mọi review gate (`GD01+`) |

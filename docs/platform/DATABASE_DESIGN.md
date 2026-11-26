@@ -12,7 +12,7 @@
 2. **Phân tách Schema theo Namespace (100+ Game Extensibility):**
    - **Platform Core Tables (14 bảng, không có tiền tố game):** Do `core/` và `modules/` sở hữu toàn quyền ghi. Mọi game chỉ đọc hoặc gọi qua Platform Services.
    - **Game-Specific Tables (`g_<plugin_id>_*`):** Mỗi mini game chỉ sở hữu bảng mang tiền tố định danh riêng (ví dụ `GAME001` dùng `g_cultivation_*`, `GAME002` tương lai dùng `g_bar_*`). Cấm game này truy vấn trực tiếp bảng `g_*` của game khác.
-3. **Đối chiếu với `GDD_Tu_Tien_Online_v0.1.md` Mục 17 (`ADR-005`):**
+3. **Đối chiếu với `docs/games/cultivation_online/GDD.md` (v0.1.1) Mục 17 (`ADR-005`):**
    - Không tạo bảng trùng lặp `tt_sessions`, `tt_events`, `tt_reward_ledger`, `tt_processed_events`, `tt_action_audit`, `tt_worlds`. Các thực thể này được hợp nhất về bảng Platform chuẩn (`game_sessions`, `scheduled_events`, `reward_ledger`, `processed_events`, `audit_logs`) có gắn `plugin_id` / `world_scope`.
    - Các bảng nghiệp vụ riêng của Tu Tiên Online (`tt_profiles`, `tt_progress`, `tt_inventory`, `tt_participants`, `tt_tribulation_queue`) được chuẩn hóa thành 8 bảng `g_cultivation_*` liên kết chặt qua FK tới `player_game_profiles.id` và `game_sessions.id`.
 
@@ -193,6 +193,7 @@ erDiagram
         TEXT profile_id PK
         TEXT appearance_code
         TEXT profession_code
+        INTEGER auto_guard_enabled
         INTEGER selection_window_end_sim_ms
         TEXT runtime_state
         TEXT current_zone_id
@@ -354,7 +355,7 @@ erDiagram
 
 | # | Bảng | Primary Key | Foreign Keys | Unique / Check Constraints | Indexes quan trọng | Mục đích |
 |---|---|---|---|---|---|---|
-| 1 | `g_cultivation_characters` | `profile_id` | `profile_id → player_game_profiles(id)` | `CHECK (appearance_code IN ('male','female'))`, `CHECK (profession_code IN ('sword','alchemy','body'))` | `idx_cult_char_state(runtime_state)` | Ngoại hình, nghề, cửa sổ chọn 60s, trạng thái & vị trí zone |
+| 1 | `g_cultivation_characters` | `profile_id` | `profile_id → player_game_profiles(id)` | `CHECK (appearance_code IN ('male','female'))`, `CHECK (profession_code IN ('sword','alchemy','body'))`, `CHECK (auto_guard_enabled IN (0,1))` *(default `1`)* | `idx_cult_char_state(runtime_state)` | Ngoại hình, nghề, tùy chọn hộ thể tự động (`!hotheauto on/off`), cửa sổ chọn 60s, trạng thái & vị trí zone |
 | 2 | `g_cultivation_progress` | `profile_id` | `profile_id → player_game_profiles(id)` | `CHECK (realm_tier BETWEEN 0 AND 3)`, `CHECK (stage_index BETWEEN 0 AND 3)`, `CHECK (xp >= 0)`, `CHECK (xp_reserved >= 0)`, `CHECK (xp_reserved <= xp)`, `CHECK (spirit_stones >= 0)` | `idx_cult_leaderboard(realm_tier DESC, stage_index DESC, xp DESC, profile_id ASC)` | Cảnh giới, tầng, tu vi, XP đang giữ, linh thạch, `version` optimistic lock |
 | 3 | `g_cultivation_realm_history` | `id` | `profile_id → player_game_profiles(id)`, `session_id → game_sessions(id)` | `CHECK (xp_spent >= 0)` | `idx_cult_realm_hist_prof(profile_id, created_at)` | Nhật ký lịch sử đột phá & độ kiếp thành công |
 | 4 | `g_cultivation_inventory` | `id` | `profile_id → player_game_profiles(id)` | `UK(profile_id, item_id)`, `CHECK (quantity >= 0)` | `idx_cult_inv_prof(profile_id)` | Vật phẩm người chơi (MVP: `healing_pill` Hồi linh đan) |

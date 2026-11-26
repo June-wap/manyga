@@ -78,11 +78,11 @@
 
 ### GD06 – Command Parser & Rule Engine *(gắn `TT-GD01` phần 2)*
 - **Objective:** Hoàn thiện phân tích lệnh xác định (Tiếng Việt có dấu/không dấu, không LLM), cooldown per-player và khung Gift Mapping chỉ cosmetic.
-- **Scope:** `Command Parser`, `Rule Engine`, bảng đăng ký 17 lệnh MVP của `cultivation_online`, Gift Mapping UI + Anti-P2W enforcement.
+- **Scope:** `Command Parser`, `Rule Engine`, bảng đăng ký đầy đủ các lệnh MVP của `cultivation_online` (bao gồm `!hothe`, `!hotheauto`, `!hotheauto on`, `!hotheauto off`), Gift Mapping UI + Anti-P2W enforcement.
 - **Dependencies:** `GD04`, `GD05`.
-- **Deliverables:** Deterministic parser, cooldown tracker theo `SimulationClock`, Gift Mapping cosmetic-only validator.
-- **Acceptance criteria:** Bình luận thường bị bỏ qua; 1 comment tối đa 1 lệnh; không cho phép điều khiển người chơi khác; gift mapping tuyệt đối không thể gắn hành động cộng XP/ATK/HP (AC16).
-- **Test requirements:** Unit tests đủ 17 lệnh + aliases có dấu, injection/chuỗi dài, cooldown chính xác, security test Anti-P2W.
+- **Deliverables:** Deterministic parser (hỗ trợ lệnh đơn + subcommand tường minh), cooldown tracker theo `SimulationClock`, Gift Mapping cosmetic-only validator.
+- **Acceptance criteria:** Bình luận thường bị bỏ qua; 1 comment tối đa 1 lệnh; hỗ trợ đầy đủ `!hothe`, `!hotheauto`, `!hotheauto on`, `!hotheauto off`; không cho phép điều khiển người chơi khác; gift mapping tuyệt đối không thể gắn hành động cộng XP/ATK/HP (AC16).
+- **Test requirements:** Unit tests đủ toàn bộ lệnh MVP + aliases có dấu, subcommand `on`/`off`, injection/chuỗi dài, cooldown chính xác, security test Anti-P2W.
 - **Out-of-scope requirements:** Không dùng LLM parse chat; không triển khai chiến đấu boss.
 
 ### GD07 – Asset Library & Importer
@@ -150,11 +150,11 @@
 
 ### GD14 – Breakthrough & Tribulation *(gắn `TT-GD06`)*
 - **Objective:** Triển khai đột phá tăng tầng thường và hệ thống **Tiểu Thiên Kiếp** vượt đại cảnh giới (Luyện Khí → Trúc Cơ, Trúc Cơ → Kim Đan) với độ an toàn transaction tuyệt đối.
-- **Scope:** Bảng `g_cultivation_tribulation_queue`, `g_cultivation_tribulation_results`; lệnh `!dotpha`, `!dokiep`, `!hothe`; giữ/giải phóng `xp_reserved`, hàng chờ FIFO tối đa 20, 5 đợt thiên lôi (`17%` / `22%` trên thang `1000` HP nguyên, không RNG), phạt `10%` khi thất bại, hoàn `100%` khi hủy/lỗi hệ thống.
+- **Scope:** Bảng `g_cultivation_tribulation_queue`, `g_cultivation_tribulation_results`; lệnh `!dotpha`, `!dokiep`, `!hothe`, `!hotheauto`, `!hotheauto on`, `!hotheauto off`; hộ thể tự động mặc định bật (GM cấu hình được chính sách mặc định, người chơi tự bật/tắt, tính theo server-side event timing hỗ trợ độ trễ livestream); giữ/giải phóng `xp_reserved`, hàng chờ FIFO tối đa 20, 5 đợt thiên lôi (`17%` / `22%` trên thang `1000` HP nguyên, không RNG), phạt `10%` khi thất bại, hoàn `100%` khi hủy/lỗi hệ thống.
 - **Dependencies:** `GD11`, `GD12`, `GD13`.
-- **Deliverables:** Breakthrough & Tribulation Engine, Tribulation Queue UI, Crash Recovery hoàn `xp_reserved`.
-- **Acceptance criteria:** Đạt `AC04` (đủ/thiếu XP), `AC05` (20 yêu cầu FIFO, không giữ XP 2 lần, không chạy khi boss sắp mở trong 30s hoặc đang active), `AC06` (thất bại/hủy/restart xử lý XP chính xác 100%).
-- **Test requirements:** Unit tests thang 1000 HP & auto/manual hộ thể, concurrency test chống giữ XP trùng, crash recovery test trong `ACTIVE`.
+- **Deliverables:** Breakthrough & Tribulation Engine, Tribulation Queue UI (kèm cấu hình mặc định auto-guard), Crash Recovery hoàn `xp_reserved`.
+- **Acceptance criteria:** Đạt `AC04` (đủ/thiếu XP), `AC05` (20 yêu cầu FIFO, không giữ XP 2 lần, không chạy khi boss sắp mở trong 30s hoặc đang active), `AC06` (thất bại/hủy/restart xử lý XP chính xác 100%, `!hotheauto on/off` và server-side timing đúng quy tắc, gift không ảnh hưởng xác suất).
+- **Test requirements:** Unit tests thang 1000 HP, `!hothe` & `!hotheauto`/`on`/`off` (mặc định bật, GM override default cho lượt mới, không đòi hỏi phản ứng animation), concurrency test chống giữ XP trùng, crash recovery test trong `ACTIVE`.
 - **Out-of-scope requirements:** Không mở cảnh giới Nguyên Anh sau Kim Đan viên mãn; không RNG hay quà trả phí tăng tỷ lệ.
 
 ### GD15 – Inventory & Items *(gắn `TT-GD05` bổ sung)*
@@ -194,13 +194,13 @@
 - **Out-of-scope requirements:** Không tự động streaming RTMP trực tiếp từ Python (OBS/TikTok LIVE Studio đảm nhiệm encoding/RTMP).
 
 ### GD19 – Performance & Reliability *(gắn `TT-GD08` phần 3)*
-- **Objective:** Đo đạc thực tế, tối ưu hóa và chứng minh độ ổn định dài hạn (soak test) cùng khả năng đáp ứng tải `100 player` với OBS capture.
-- **Scope:** `Analytics` benchmark exporter, kịch bản benchmark `1 / 20 / 50 / 100` nhân vật (`p50/p95 frame time`, CPU/GPU/VRAM, draw calls, queue depth, event latency), tối ưu LOD/animation throttling/VFX pooling, burst test `100 lệnh/s` trong 30s, soak test nhiều giờ không rò rỉ RAM/VRAM/handles.
+- **Objective:** Đo đạc thực tế, tối ưu hóa và chứng minh độ ổn định dài hạn (**phiên chạy liên tục 4 giờ**) cùng khả năng đáp ứng các mục tiêu benchmark MVP (`1080×1920`, `30 FPS`, `100` concurrent active players, single `WebGLRenderer`, tối đa `1` PiP, LOD, resource disposal) với OBS capture.
+- **Scope:** `Analytics` benchmark exporter, kịch bản benchmark `1 / 20 / 50 / 100` nhân vật (`p50/p95 frame time`, draw calls, queue depth, event latency), tối ưu LOD/animation throttling/VFX pooling/resource disposal, burst test `100 lệnh/s` trong 30s, **4-hour continuous session soak test** kèm giám sát liên tục **CPU, RAM, GPU và VRAM (Total vs Available)**.
 - **Dependencies:** `GD13`, `GD14`, `GD15`, `GD16`, `GD18`.
-- **Deliverables:** `docs/GD19_BENCHMARK_REPORT.md` kèm số đo thật và cấu hình phần cứng; các bản vá hiệu năng nếu chưa đạt ngưỡng 30 FPS.
-- **Acceptance criteria:** Đạt `AC09` (burst 100/s) và `AC15` (báo cáo số đo thật 100 player với OBS — nếu phần cứng không đạt 30 FPS ở 100 nhân vật render đầy đủ, chốt ngưỡng `max_visible_characters` và LOD thực tế minh bạch).
-- **Test requirements:** Automated benchmark suite, memory/VRAM leak profiling, crash recovery regression full pass.
-- **Out-of-scope requirements:** Không bịa hoặc ước lượng số FPS không đo được.
+- **Deliverables:** `docs/GD19_BENCHMARK_REPORT.md` kèm số đo thật và cấu hình phần cứng; các bản vá hiệu năng nếu chưa đạt ngưỡng mục tiêu `30 FPS`.
+- **Acceptance criteria:** Đạt `AC09` (burst 100/s) và `AC15` (báo cáo số đo thật mục tiêu `1080×1920` / `30 FPS` / `100` players / single `WebGLRenderer` / max `1` PiP / LOD / resource disposal / **4-hour continuous session** kèm giám sát CPU/RAM/GPU/VRAM và OBS — nếu phần cứng không đạt 30 FPS ở 100 nhân vật render đầy đủ, chốt ngưỡng `max_visible_characters` và LOD thực tế minh bạch).
+- **Test requirements:** Automated benchmark suite, **4-hour continuous soak test** với CPU/RAM/GPU/VRAM telemetry, memory/VRAM disposal leak profiling, crash recovery regression full pass.
+- **Out-of-scope requirements:** Không bịa hoặc ước lượng số FPS chưa đo được; không chạy benchmark runtime trong GD00.
 
 ### GD20 – Windows Packaging & MVP Release *(gắn `TT-GD08` phần 4)*
 - **Objective:** Đóng gói ứng dụng Windows Desktop hoàn chỉnh, dễ cài đặt/chạy local, thực hiện hồi quy toàn bộ AC01–AC18 và phát hành MVP v1.0.0.

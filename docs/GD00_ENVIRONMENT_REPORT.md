@@ -11,7 +11,7 @@
 | Hạng mục | Kết quả kiểm tra thực tế |
 |---|---|
 | Đường dẫn Workspace | `D:\Tiktok Mini Game` (tồn tại, là workspace duy nhất) |
-| Trạng thái ban đầu trước GD00 | Có `.git` (remote `origin` trỏ `https://github.com/June-wap/manyga.git`, 0 commits) và tệp `GDD_Tu_Tien_Online_v0.1.md` (`31,380 bytes`, 274 dòng) |
+| Trạng thái ban đầu trước GD00 | Có `.git` (remote `origin` trỏ `https://github.com/June-wap/manyga.git`, 0 commits) và tệp GDD gốc tại root (`31,380 bytes`, 274 dòng), đã di chuyển chính thức sang `docs/games/cultivation_online/GDD.md` qua `git mv` ở `GD00-FIX01` |
 | Git Version | `git version 2.49.0.windows.1` |
 | Git User Config | `Basic <anhquang657@gmail.com>` |
 | Branch GD00 | `design/gd00` (tạo mới, chưa push remote, chưa merge vào `main`) |
@@ -23,11 +23,13 @@
 | Thành phần | Thông số đo được thực tế | Ghi chú cho GD01–GD20 |
 |---|---|---|
 | **OS** | Microsoft Windows 11 Home Single Language `10.0.26300` (64-bit) | Đáp ứng mục tiêu Windows Desktop 64-bit |
-| **CPU** | 12th Gen Intel Core i5-12450H (`8 Cores / 12 Threads`) | Đủ cho FastAPI + PySide6 + Chromium/OBS dev |
-| **RAM** | `15.73 GB` | Đủ dev; cần theo dõi RAM khi chạy đồng thời OBS + WebGL + IDE |
-| **GPU rời** | NVIDIA GeForce RTX 4050 Laptop GPU (`~4 GB VRAM` reported `AdapterRAM`, driver `32.0.15.9159`) | Hỗ trợ WebGL2 tốt; **4 GB VRAM** là ràng buộc quan trọng cho texture 512–1024 và LOD ở GD19 |
-| **GPU tích hợp** | Intel(R) UHD Graphics (`~2 GB`, driver `32.0.101.7082`) | Lưu ý Windows hybrid GPU: cần đảm bảo WebView/OBS dùng đúng GPU khi benchmark |
-| **Ổ đĩa `D:\`** | Còn trống **`29.83 GB`** | Đủ cho GD00–GD05; cần giám sát dung lượng khi thêm `.venv`, `node_modules`, assets 3D và file ghi OBS |
+| **CPU** | 12th Gen Intel Core i5-12450H (`8 Cores / 12 Threads`, Base/Max reported `2000 MHz`) | Đủ cho FastAPI + PySide6 + Chromium/OBS dev |
+| **RAM (Tổng / Khả dụng)** | Tổng: **`15.73 GB`** \| Khả dụng tại thời điểm đo: **`3.14 GB`** | Cần theo dõi chặt bộ nhớ khả dụng khi chạy đồng thời OBS + WebGL + IDE trong bài test liên tục 4 giờ |
+| **GPU rời (`nvidia-smi`)** | **NVIDIA GeForce RTX 4050 Laptop GPU** (Driver `591.59`) | Hỗ trợ WebGL2 tốt; xác minh trực tiếp bằng `nvidia-smi` (khắc phục giới hạn 32-bit 4 GB của WMI `AdapterRAM`) |
+| **GPU VRAM (Tổng / Đang dùng / Khả dụng)** | Tổng VRAM: **`6141 MiB` (~6.00 GB)** \| Đang dùng: `101 MiB` \| Khả dụng: **`5820 MiB` (~5.68 GB)** *(~220 MiB reserved hệ thống)* | **Phân biệt rõ:** Tổng VRAM vật lý là `6141 MiB`, bộ nhớ khả dụng tại thời điểm đo là `5820 MiB` — đủ biên cho mục tiêu texture 512–1024 và LOD ở GD19 nhưng phải đo thực tế kèm OBS |
+| **GPU tích hợp** | Intel(R) UHD Graphics (`~2 GB` shared, driver `32.0.101.7082`) | Lưu ý Windows hybrid GPU: cần ép WebView/Chromium và OBS dùng RTX 4050 khi benchmark |
+| **Ổ đĩa `D:\` (Workspace)** | Còn trống **`29.83 GB`** / Tổng `80.00 GB` | Đủ cho GD00–GD05; cần giám sát dung lượng khi thêm `.venv`, `node_modules`, assets 3D và file ghi OBS |
+| **Ổ đĩa `C:\` (Hệ thống)** | Còn trống **`76.40 GB`** / Tổng `395.79 GB` | Ổ hệ điều hành và cache người dùng |
 
 ---
 
@@ -64,4 +66,4 @@
 
 1. **Đủ điều kiện triển khai GD01:** Máy đã có sẵn Python 3.11/3.12, `uv`/`pip`, Node.js 24, `npm` 11, Git 2.49, SQLite 3.45.1 và GPU RTX 4050 Laptop.
 2. **Bắt buộc dùng Virtual Environment (`.venv`) tại GD01:** Không dùng gói cài toàn cục tránh xung đột phiên bản; khóa dependency qua `pyproject.toml` / `requirements.txt` và `package-lock.json`.
-3. **Lưu ý phần cứng khi tới GD19:** Dung lượng ổ `D:\` còn `29.83 GB` và VRAM RTX 4050 Laptop ~4 GB cần được theo dõi sát trong benchmark 100 nhân vật cùng OBS.
+3. **Lưu ý phần cứng khi tới GD19:** Tổng VRAM RTX 4050 Laptop là **`6141 MiB`** (khả dụng `5820 MiB` khi rảnh), RAM khả dụng tại thời điểm đo chỉ còn `3.14 GB / 15.73 GB` và ổ `D:\` còn trống `29.83 GB / 80.00 GB` — bắt buộc giám sát CPU, RAM, GPU và VRAM liên tục trong bài kiểm thử phiên chạy 4 giờ ở GD19.

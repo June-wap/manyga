@@ -8,7 +8,7 @@
 
 ## 1. Normalized Event Envelope (Schema bắt buộc)
 
-Mọi sự kiện đi qua `Event Gateway` (dù từ Authorized TikTok Provider hay Mock Event Simulator) phải được chuẩn hóa về cùng một Envelope khớp với `GDD_Tu_Tien_Online_v0.1.md` Mục 16:
+Mọi sự kiện đi qua `Event Gateway` (dù từ Authorized TikTok Provider hay Mock Event Simulator) phải được chuẩn hóa về cùng một Envelope khớp với `docs/games/cultivation_online/GDD.md` (v0.1.1) Mục 16:
 
 ```json
 {
@@ -73,7 +73,7 @@ Mọi sự kiện đi qua `Event Gateway` (dù từ Authorized TikTok Provider h
 - Các hàng chờ cộng đồng (ví dụ hàng chờ Tiểu Thiên Kiếp) sắp xếp xác định bằng cặp `(received_at_monotonic, player_id)`.
 
 ### 3.3 Rate Limiting & Backpressure
-- **Per-player Cooldown (Rule Engine):** Áp dụng cooldown độc lập theo từng player và nhóm lệnh (ví dụ GAME001: `!join` 5s, `!tuluyen`/`!nghi` 3s, `!dotpha`/`!dokiep` 10s, `!boss` 5s, `!skill` 12s, `!defend`/`!hothe` 8s, `!heal` 20s, `!info`/`!find`/`!rank` 60s, `!help` 30s).
+- **Per-player Cooldown (Rule Engine):** Áp dụng cooldown độc lập theo từng player và nhóm lệnh dựa trên **server-side `SimulationClock`** (không phụ thuộc thời gian animation ở client, hỗ trợ độ trễ livestream). Ví dụ GAME001 (20 lệnh/dạng lệnh MVP): `!join` 5s, `!nam`/`!nu`/`!kiem`/`!dan`/`!the` 10s, `!tuluyen`/`!nghi` 3s, `!dotpha`/`!dokiep` 10s, `!boss` 5s, `!skill` 12s, `!defend`/`!hothe` 8s, `!hotheauto` / `!hotheauto on` / `!hotheauto off` 5s, `!heal` 20s, `!info`/`!find`/`!rank` 60s, `!help` 30s.
 - **Bounded Queue & Load Shedding:**
   - `Event Bus` đặt giới hạn mặc định `max_queue_size = 2000`.
   - Khi độ sâu hàng đợi vượt `70%`: kích hoạt chế độ gộp/bỏ bớt sự kiện ưu tiên thấp (`like`, `room_join`, `cosmetic burst`).

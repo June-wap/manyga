@@ -46,14 +46,18 @@ tests/
    - Khi test phát hiện bug ở code nguồn, phải sửa code nguồn hoặc báo cáo `FAIL`; cấm nới lỏng assertion để đạt `PASS` giả.
 4. **Phân tách Simulator vs Live:**
    - Simulator `PASS` **không đồng nghĩa** Live TikTok `PASS`. Các tiêu chí gắn với kết nối TikTok thật (`AC18`) chỉ được phép đánh `PASS` sau khi chạy Authorized Live Smoke Test tại `GD17`.
-5. **Trung thực về Benchmark hiệu năng:**
-   - Mọi báo cáo hiệu năng (`AC15`) bắt buộc ghi đủ: cấu hình CPU/RAM/GPU/VRAM, độ phân giải (`1080×1920`), có bật OBS capture hay không, số nhân vật (`1/20/50/100`), p50/p95 frame time, draw calls và queue depth. Không suy đoán hay bịa FPS.
+5. **Trung thực về Benchmark hiệu năng & Mục tiêu Kiểm thử MVP (GD19):**
+   - Toàn bộ các chỉ tiêu sau là **mục tiêu kiểm thử (benchmark targets)**, **không phải kết quả đã đạt** và không chạy runtime benchmark trong GD00:
+     - Độ phân giải phát sóng `1080×1920`, mục tiêu `30 FPS` (`60 FPS` nâng cao), mục tiêu `100` concurrent active players.
+     - Single `WebGLRenderer`, tối đa `1` PiP (tắt được), áp dụng chiến lược `LOD` và `Resource Disposal` không rò rỉ.
+     - Bài kiểm thử bền bỉ liên tục **4 giờ (4-hour continuous session test)** kèm giám sát liên tục **CPU, RAM, GPU và VRAM**.
+   - Mọi báo cáo hiệu năng (`AC15`) bắt buộc ghi đủ: cấu hình CPU/RAM/GPU/VRAM (phân biệt Tổng VRAM và VRAM khả dụng), độ phân giải (`1080×1920`), có bật OBS capture hay không, số nhân vật (`1/20/50/100`), p50/p95 frame time, draw calls và queue depth. Không suy đoán hay bịa FPS.
 
 ---
 
 ## 4. Ma trận Ánh xạ Tiêu chí Nghiệm thu GAME001 (AC01–AC18)
 
-*(Đối chiếu trực tiếp với `GDD_Tu_Tien_Online_v0.1.md` Mục 19)*
+*(Đối chiếu trực tiếp với `docs/games/cultivation_online/GDD.md` v0.1.1 Mục 19 và Amendment v0.1.1)*
 
 | AC ID | Kịch bản bắt buộc | Loại test | Giai đoạn nghiệm thu |
 |---|---|---|---|
@@ -62,7 +66,7 @@ tests/
 | `AC03` | Tu luyện 10 tick (+20 XP); PAUSE không cộng | Unit + Integration | `GD11` |
 | `AC04` | Đột phá đủ/thiếu XP, transaction nguyên tử | Unit + Integration | `GD14` |
 | `AC05` | 20 người yêu cầu kiếp: FIFO, không giữ XP 2 lần, không chồng Boss | Integration | `GD14` |
-| `AC06` | Kiếp thất bại / hủy / restart: penalty 10% hoặc refund 100% đúng luật | Integration / Crash | `GD14` |
+| `AC06` | Kiếp thất bại/hủy/restart (penalty/refund đúng) & bộ lệnh `!hothe`, `!hotheauto`, `!hotheauto on/off` (mặc định bật, server-side timing, GM cấu hình mặc định, gift không ảnh hưởng xác suất) | Integration / Crash | `GD14` |
 | `AC07` | Boss thắng / thua / hết giờ: kết thúc xác định, thưởng đúng | Unit + Integration | `GD13` |
 | `AC08` | Replay event & restart giữa `REWARDING`: không cấp thưởng trùng | Replay / Crash | `GD13` |
 | `AC09` | Lệnh sai / spam burst: không crash, cooldown đúng, queue hữu hạn | Replay / Perf | `GD04`, `GD06`, `GD19` |
@@ -71,7 +75,7 @@ tests/
 | `AC12` | Mất nguồn sự kiện: pause sau grace period 15s, resume có kiểm soát | Integration | `GD04`, `GD17` |
 | `AC13` | Game Master Pause/Stop: clock đóng băng, lưu dữ liệu, không orphan process | UI + Integration | `GD03`, `GD12`, `GD18` |
 | `AC14` | Nạp GLB thật / placeholder đúng version; thiếu asset có fallback rõ | Contract + Frontend | `GD07`, `GD09` |
-| `AC15` | Benchmark 100 player với OBS báo số đo thật + cấu hình | Perf / Benchmark | `GD19` |
+| `AC15` | Benchmark mục tiêu `1080×1920`, `30 FPS`, `100` concurrent active players, single `WebGLRenderer`, tối đa `1` PiP, LOD, resource disposal, **phiên chạy liên tục 4 giờ** kèm giám sát **CPU/RAM/GPU/VRAM** và OBS (báo số đo thật + cấu hình) | Perf / Benchmark / Soak | `GD19` |
 | `AC16` | Gift gửi lặp: chỉ cosmetic, không đổi XP/HP/ATK, dedupe | Unit + Security | `GD06`, `GD16` |
 | `AC17` | Output dọc `1080×1920` dễ đọc, không bị che bởi UI TikTok | UI / Visual E2E | `GD08`, `GD18` |
 | `AC18` | TikTok LIVE Authorized Smoke Test (ghi rõ quyền & hạn chế) | Live Gate E2E | `GD17` |

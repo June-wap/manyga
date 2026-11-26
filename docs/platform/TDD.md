@@ -129,7 +129,19 @@ Khi nhận `SIGINT`/`SIGTERM` hoặc nút thoát từ Desktop UI:
 
 ---
 
-## 7. Khả năng quan sát & Xử lý lỗi (Observability & Error Handling)
+## 7. Khả năng quan sát, Xử lý lỗi & Mục tiêu Kiểm thử Hiệu năng (Observability, Error Handling & Performance Targets)
+
+### 7.1 Mục tiêu Benchmark MVP (Subject to Verification — Chưa phải kết quả đo thực tế)
+Toàn bộ các chỉ tiêu sau là **mục tiêu kiểm thử tại GD19**, chưa được triển khai đo hoặc khẳng định đã đạt trong GD00:
+- **Broadcast Output:** `1080×1920` (9:16), mục tiêu **`30 FPS`** ổn định (`60 FPS` mục tiêu nâng cao) khi capture cùng OBS.
+- **Tải người chơi:** **`100` concurrent active players** (tách simulation state với render budget/LOD).
+- **Kiến trúc đồ họa:** **Single `WebGLRenderer`**, tối đa **1 PiP** (render qua scissor/viewport trên cùng renderer, tắt được).
+- **Chiến lược tối ưu:** **LOD 3 cấp** (`5–8k / 2–3k / 0.5–1k` tris mục tiêu), frustum culling, animation throttling, object pooling VFX/nameplate.
+- **Resource Disposal:** Giải phóng triệt để geometry, material, texture, renderTarget, animation mixer, timer và WebSocket khi despawn/reload/shutdown.
+- **4-Hour Continuous Session Test:** Phiên chạy liên tục **4 giờ** dưới tải giả lập thực tế không crash, không tăng trưởng RAM/VRAM bất thường và không rò rỉ handle.
+- **Resource Monitoring:** Giám sát liên tục **CPU, RAM, GPU utilization và GPU VRAM (Total vs Used/Free)** song song với p50/p95 frame time, draw calls và event queue depth.
+
+### 7.2 Observability & Error Isolation
 
 - **Structured Logging (JSON lines + Console human-readable):** Mỗi log mang `timestamp_utc`, `level`, `module`, `session_id`, `event_id`, `correlation_id`, `message`. Bộ lọc tự động redact các trường khớp `token`, `secret`, `password`, `authorization`, `cookie`, `api_key`.
 - **Error Isolation cho Plugin:** Mọi lời gọi vào `GamePlugin.handle_event()` hoặc `tick()` được bọc `try/except` tại `Game Session Manager`. Lỗi cục bộ trên 1 lệnh người chơi trả mã lỗi có cấu trúc và ghi log cho GM, không làm sập toàn bộ vòng lặp Backend; nếu lỗi nghiêm trọng tái diễn vượt ngưỡng (circuit breaker), tự động chuyển phiên sang `PAUSED_ERROR` và báo động trên Game Master Panel.

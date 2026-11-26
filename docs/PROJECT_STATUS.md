@@ -24,10 +24,9 @@
 
 ## 2. Trạng thái kiểm tra GDD GAME001
 
-- **File tìm thấy:** `GDD_Tu_Tien_Online_v0.1.md` (phiên bản `0.1.0`, 274 dòng, tại root workspace).
-- **Trạng thái đọc:** Đã đọc đầy đủ 100%, không chỉnh sửa/ghi đè.
+- **File chính thức duy nhất (Single Source of Truth):** `docs/games/cultivation_online/GDD.md` (phiên bản `0.1.1` — di chuyển từ `GDD_Tu_Tien_Online_v0.1.md` qua `git mv` với SHA-256 xác minh trùng khớp 100%, bổ sung Amendment `v0.1.1` cho bộ lệnh `!hotheauto`).
 - **Tài liệu đối chiếu:** `docs/games/cultivation_online/GDD_REQUIREMENTS_MAPPING.md`.
-- **Trạng thái GDD:** Bản thiết kế MVP chờ người dùng phê duyệt và cân bằng số liệu (`v0.1.0`).
+- **Trạng thái GDD:** Đã giải quyết `ADR-007` và `CONF-04`/`OPEN-05`; thông số cân bằng gốc giữ nguyên chờ playtest ở GD11–GD14.
 
 ---
 
@@ -36,17 +35,16 @@
 | ID | Hạng mục | Trạng thái | Tác động | Giai đoạn giải quyết |
 |---|---|---|---|---|
 | OPEN-01 | Nguồn tiếp nhận sự kiện TikTok LIVE được cấp quyền (comment, gift, like, join) | `UNVERIFIED` | Chặn Live Smoke Test (AC18); Simulator dùng để phát triển GD01–GD16 | GD17 Gate |
-| OPEN-02 | Khả năng render 100 nhân vật Chibi 3D ở 30/60 FPS (`1080×1920`) cùng OBS trên RTX 4050 Laptop (4GB VRAM) | `UNVERIFIED` | Ảnh hưởng LOD budget & kỹ thuật crowd rendering (SkinnedMesh batching) | GD09, GD19 Benchmark |
-| OPEN-03 | Thông số cân bằng gameplay GAME001 (XP=2/s, Boss HP=`500+180*N`, Thiên lôi 17%/22%, auto-hộ thể mặc định ON) | `PROPOSED` | Cần chốt trước khóa balance MVP | GD11–GD14 Playtest |
-| OPEN-04 | Vị trí lưu GDD chuẩn (`GDD_Tu_Tien_Online_v0.1.md` ở root vs `docs/games/cultivation_online/GDD.md`) | `PENDING APPROVAL` | Không chặn kỹ thuật, cần xác nhận để đồng bộ đường dẫn (ADR-007) | Trước GD05 |
-| OPEN-05 | Alias `!hotheauto off` được nhắc ở Mục 10 GDD nhưng chưa có trong bảng lệnh Mục 6 GDD | `CLARIFICATION NEEDED` | Cần xác nhận đưa vào bảng lệnh MVP hay để config GM | Trước GD14 |
+| OPEN-02 | Mục tiêu benchmark MVP (`1080×1920`, `30 FPS`, `100` players, single `WebGLRenderer`, max `1` PiP, LOD, resource disposal, **4-hour continuous session**) cùng OBS trên RTX 4050 Laptop (`6141 MiB` tổng VRAM / `5820 MiB` khả dụng) | `UNVERIFIED` | Ảnh hưởng LOD budget & kỹ thuật crowd rendering (SkinnedMesh batching); cần giám sát CPU/RAM/GPU/VRAM | GD09, GD19 Benchmark |
+| OPEN-03 | Thông số cân bằng gameplay GAME001 (XP=2/s, Boss HP=`500+180*N`, Thiên lôi 17%/22%, giữ nguyên từ v0.1.0) | `PROPOSED` | Cần chốt trước khóa balance MVP | GD11–GD14 Playtest |
+| OPEN-04 | Vị trí lưu GDD chuẩn (`docs/games/cultivation_online/GDD.md`) | `RESOLVED` (`GD00-FIX01`, `ADR-007`) | Đã di chuyển bằng `git mv`, xác minh SHA-256, chỉ còn 1 nguồn GDD chính thức | Hoàn tất GD00-FIX01 |
+| OPEN-05 | Bộ lệnh hộ thể tự động (`!hothe`, `!hotheauto`, `!hotheauto on`, `!hotheauto off`) | `RESOLVED` (`GD00-FIX01`, `ADR-015`) | Đã chuẩn hóa trong GDD `v0.1.1`, Command Contract, DB schema và AC06 | Hoàn tất GD00-FIX01 |
 | OPEN-06 | Quyền sử dụng thương mại/livestream cho assets 3D, animations, BGM/SFX | `UNVERIFIED` | Bắt buộc có `license` & `provenance` hợp lệ trước khi nhập production asset | TT-AS01..09 / GD07 |
-| OPEN-07 | Dung lượng trống ổ `D:\` hiện còn `29.83 GB` | `MONITOR` | Đủ cho GD00–GD05, cần theo dõi khi có `node_modules`, `.venv`, asset GLB và OBS recordings | Liên tục |
+| OPEN-07 | Dung lượng trống ổ `D:\` (`29.83 GB / 80.00 GB`) và RAM khả dụng tại thời điểm đo (`3.14 GB / 15.73 GB`) | `MONITOR` | Đủ cho GD00–GD05, cần giám sát chặt khi cài `.venv`/`node_modules`, asset GLB và chạy soak test 4 giờ | Liên tục |
 
 ---
 
 ## 4. Bước tiếp theo (Next Actions)
 
-1. Chủ dự án phê duyệt kết quả `GD00` và xác nhận các mục tại Mục 3 (đặc biệt ADR-007 và định hướng cân bằng GDD v0.1.0).
-2. Sau khi được yêu cầu rõ ràng, merge `design/gd00` (hoặc tạo branch `feat/gd01-foundation` từ `design/gd00`).
-3. Khởi động **GD01 – Platform Foundation** (Codex triển khai foundation backend/desktop/frontend skeleton; Antigravity thực hiện independent review GD01-R1).
+1. Thực hiện **Antigravity Independent Review** cho toàn bộ sản phẩm GD00 + GD00-FIX01 trên nhánh `design/gd00`.
+2. Sau khi được phê duyệt và có lệnh xác nhận rõ ràng, chuyển sang **GD01 – Platform Foundation** (tạo `.venv`, FastAPI skeleton, PySide6 shell, Vite/Three.js skeleton).

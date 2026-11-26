@@ -17,7 +17,7 @@ Tài liệu này là hiến chương kỹ thuật bắt buộc cho mọi agent (
 - **Nhóm Backend / Domain (Codex sở hữu khi implement):** `core/`, `modules/`, `games/`, `apps/backend/`, `scripts/`, `tests/backend/`, `tests/games/`.
 - **Nhóm UI / Renderer (Antigravity sở hữu khi implement UI/Render; chỉ đọc khi Review):** `apps/desktop/`, `frontend/`, `tests/ui/`, `tests/frontend/`.
 - **Nhóm Contract & Tài liệu kiến trúc (`docs/platform/*.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`):** Chỉ thay đổi qua đề xuất rõ ràng, cập nhật ADR trong `docs/DECISIONS.md` và `docs/CHANGELOG.md` trước hoặc cùng commit thay đổi contract.
-- **Nhóm GDD gốc (`GDD_Tu_Tien_Online_v0.1.md` / `docs/games/cultivation_online/GDD.md`):** Nguồn luật gameplay. **Không tự ý ghi đè** khi chưa có phê duyệt từ chủ dự án.
+- **Nhóm GDD chính thức (`docs/games/cultivation_online/GDD.md`):** Nguồn sự thật duy nhất (Single Source of Truth) cho luật gameplay GAME001. **Không tự ý ghi đè** khi chưa có phê duyệt từ chủ dự án; mọi sửa đổi phải ghi rõ Revision History và ADR liên quan.
 
 ---
 

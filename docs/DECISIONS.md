@@ -1,6 +1,6 @@
 # ARCHITECTURE DECISION RECORDS (DECISIONS.md)
 
-Tài liệu ghi nhận toàn bộ quyết định kiến trúc quan trọng của **LiveGame Studio** và các điểm đối chiếu (reconciliation) giữa Platform Design (`GD00`) và `GDD_Tu_Tien_Online_v0.1.md`.
+Tài liệu ghi nhận toàn bộ quyết định kiến trúc quan trọng của **LiveGame Studio** và các điểm đối chiếu (reconciliation) giữa Platform Design (`GD00`) và `docs/games/cultivation_online/GDD.md`.
 
 ---
 
@@ -35,7 +35,7 @@ Tài liệu ghi nhận toàn bộ quyết định kiến trúc quan trọng củ
 ## ADR-005: Đối chiếu Schema CSDL giữa Platform Design và GDD v0.1.0
 - **Trạng thái:** Accepted (Reconciliation)
 - **Ngày:** 2026-11-26
-- **Bối cảnh:** `GDD_Tu_Tien_Online_v0.1.md` (Mục 17) liệt kê 11 bảng `tt_*` (trong đó có `tt_worlds`, `tt_sessions`, `tt_events`, `tt_reward_ledger`, `tt_processed_events`, `tt_action_audit`), nhưng chính GDD yêu cầu *"phải reconcile với schema platform và Alembic; không tạo trùng bảng chung."*
+- **Bối cảnh:** `docs/games/cultivation_online/GDD.md` (Mục 17) liệt kê 11 bảng `tt_*` (trong đó có `tt_worlds`, `tt_sessions`, `tt_events`, `tt_reward_ledger`, `tt_processed_events`, `tt_action_audit`), nhưng chính GDD yêu cầu *"phải reconcile với schema platform và Alembic; không tạo trùng bảng chung."*
 - **Quyết định:**
   - Platform sở hữu duy nhất các bảng lõi dùng chung: `application_settings`, `game_plugins`, `game_sessions`, `players`, `external_identities`, `player_game_profiles`, `assets`, `asset_versions`, `asset_dependencies`, `event_ingestions`, `processed_events`, `scheduled_events`, `reward_ledger`, `audit_logs`.
   - GAME001 (`cultivation_online`) chỉ sở hữu 8 bảng đặc thù tiền tố `g_cultivation_*`: `g_cultivation_characters`, `g_cultivation_progress`, `g_cultivation_realm_history`, `g_cultivation_inventory`, `g_cultivation_boss_events`, `g_cultivation_boss_participants`, `g_cultivation_tribulation_queue`, `g_cultivation_tribulation_results`.
@@ -47,11 +47,11 @@ Tài liệu ghi nhận toàn bộ quyết định kiến trúc quan trọng củ
 - **Bối cảnh:** Thiết kế Platform chia 21 giai đoạn `GD00`–`GD20`, trong khi GDD v0.1.0 (Mục 20) chia 8 gói việc `TT-GD01`–`TT-GD08` và 9 gói asset `TT-AS01`–`TT-AS09`.
 - **Quyết định:** Giữ `GD00`–`GD20` là xương sống phát hành chính thức của Platform, đồng thời ánh xạ tường minh từng `TT-GD01`..`TT-GD08` vào các giai đoạn `GD05`..`GD20` trong `docs/ROADMAP.md`, và giữ `TT-AS01`..`TT-AS09` thành Asset Roadmap độc lập không chặn nền tảng.
 
-## ADR-007: Vị trí file GDD gốc `GDD_Tu_Tien_Online_v0.1.md`
-- **Trạng thái:** Proposed (Pending User Approval)
+## ADR-007: Vị trí chính thức duy nhất của GDD GAME001 (`docs/games/cultivation_online/GDD.md`)
+- **Trạng thái:** Accepted & Resolved (`GD00-FIX01`, 2026-11-26)
 - **Ngày:** 2026-11-26
-- **Bối cảnh:** File GDD gốc hiện nằm tại root `D:\Tiktok Mini Game\GDD_Tu_Tien_Online_v0.1.md`, trong khi Mục 22 của GDD ghi *"Lưu tài liệu vào docs/games/cultivation_online/GDD.md"*.
-- **Quyết định tạm thời:** Trong GD00, **giữ nguyên 100% file `GDD_Tu_Tien_Online_v0.1.md` tại root** (không di chuyển, không sửa, không ghi đè theo quy tắc an toàn). Sau khi người dùng xác nhận, mới quyết định có sao chép/di chuyển sang `docs/games/cultivation_online/GDD.md` hay giữ ở root.
+- **Bối cảnh:** File GDD gốc ban đầu nằm tại root `GDD_Tu_Tien_Online_v0.1.md`, trong khi Mục 22 của GDD chỉ định *"Lưu tài liệu vào docs/games/cultivation_online/GDD.md"*.
+- **Quyết định:** Di chuyển tệp bằng `git mv` từ `GDD_Tu_Tien_Online_v0.1.md` sang `docs/games/cultivation_online/GDD.md`, xác minh toàn vẹn SHA-256 trước/sau hoàn toàn trùng khớp (`0A4F9D8B3D2005D0947A7C48E85F87D6B143ECC851DEB0E6345D27B2FF4AE534`, `31,380 bytes`), cập nhật toàn bộ đường dẫn tham chiếu trong repository và không duy trì bản sao GDD thứ hai. `docs/games/cultivation_online/GDD.md` là **Single Source of Truth** duy nhất cho luật gameplay GAME001.
 
 ## ADR-008: Một WebGL Renderer duy nhất và chiến lược Crowd Rendering
 - **Trạng thái:** Accepted
@@ -93,3 +93,13 @@ Tài liệu ghi nhận toàn bộ quyết định kiến trúc quan trọng củ
 - **Ngày:** 2026-11-26
 - **Quyết định:** Chỉ tiến trình FastAPI Backend được mở kết nối ghi vào file SQLite. PySide6 Desktop UI và Frontend Renderer giao tiếp 100% qua FastAPI REST/WebSocket (`127.0.0.1`).
 - **Lý do:** Loại bỏ lỗi `SQLITE_BUSY` / lock contention giữa nhiều tiến trình Windows và đảm bảo mọi thay đổi đều đi qua Validation, Transaction Boundary và Audit Log.
+
+## ADR-015: Chuẩn hóa Lệnh Hộ Thể Tự Động (`!hothe`, `!hotheauto`, `!hotheauto on/off`) — Giải quyết `CONF-04` / `OPEN-05`
+- **Trạng thái:** Accepted & Resolved (`GD00-FIX01`, 2026-11-26)
+- **Ngày:** 2026-11-26
+- **Bối cảnh:** GDD v0.1.0 Mục 10 nhắc đến `!hotheauto off` nhưng chưa kê khai trong bảng lệnh Mục 6. Ngoài ra độ trễ livestream (broadcast delay 3–15s) khiến việc ép người xem canh chuẩn khung hình animation để bấm `!hothe` là không công bằng.
+- **Quyết định:**
+  1. Bổ sung chính thức vào bảng lệnh MVP (`docs/games/cultivation_online/GDD.md` Amendment `v0.1.1`): `!hothe`, `!hotheauto`, `!hotheauto on`, `!hotheauto off`.
+  2. **Hộ thể tự động mặc định bật** (`g_cultivation_characters.auto_guard_enabled = 1`); người chơi có thể bật/tắt bằng bình luận; Game Master có thể cấu hình chính sách mặc định cho phiên/lượt kiếp mới.
+  3. Toàn bộ tính toán hộ thể và thiên lôi dựa trên **server-side event timing (`SimulationClock`)**, hỗ trợ độ trễ livestream và không yêu cầu phản ứng khớp khung hình animation.
+  4. Không thay đổi bất kỳ thông số cân bằng gốc nào của v0.1.0 và tuyệt đối không dùng quà tặng trả phí để tăng xác suất độ kiếp.

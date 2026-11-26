@@ -84,7 +84,8 @@ Toàn bộ bước 1–15 của chỉ thị `GD00` đã được thực hiện t
 
 ## 5. Điểm chờ chủ dự án xác nhận trước khi bước sang GD01 / GD05
 
-1. **Phê duyệt thiết kế GD00** để bắt đầu triển khai **GD01 – Platform Foundation** (tạo `.venv`, cài `PySide6`/`sqlalchemy`/`alembic`/`pytest`, khởi tạo FastAPI + Desktop Shell + Vite/Three.js skeleton).
-2. **Xác nhận `ADR-007`:** Có giữ `GDD_Tu_Tien_Online_v0.1.md` tại root hay sao chép/di chuyển vào `docs/games/cultivation_online/GDD.md` theo GDD Mục 22.
-3. **Xác nhận `CONF-04` (`OPEN-05`):** Có đưa lệnh `!hotheauto off` vào bảng lệnh MVP chính thức của GAME001 hay chỉ cấu hình từ Game Master Panel (trước `GD14`).
+1. **Thực hiện Antigravity Independent Review cho GD00 + GD00-FIX01** và phê duyệt trước khi bắt đầu **GD01 – Platform Foundation** (tạo `.venv`, cài `PySide6`/`sqlalchemy`/`alembic`/`pytest`, khởi tạo FastAPI + Desktop Shell + Vite/Three.js skeleton).
+2. ~~**`ADR-007`:**~~ **ĐÃ GIẢI QUYẾT ở `GD00-FIX01`:** GDD đã được di chuyển nguyên vẹn bằng `git mv` sang `docs/games/cultivation_online/GDD.md` (Single Source of Truth).
+3. ~~**`CONF-04` (`OPEN-05`):**~~ **ĐÃ GIẢI QUYẾT ở `GD00-FIX01` (`ADR-015`):** Đã bổ sung chính thức `!hothe`, `!hotheauto`, `!hotheauto on`, `!hotheauto off` trong GDD Amendment `v0.1.1` và các hợp đồng liên quan.
 4. **Chuẩn bị cổng `GD17`:** Xác định phương án tiếp nhận sự kiện TikTok LIVE được cấp quyền (Official Partner API hoặc Authorized Third-Party Provider).
+*(Xem chi tiết đầy đủ các cập nhật sau baseline tại `docs/GD00_FIX01_REPORT.md`.)*

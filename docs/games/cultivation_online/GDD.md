@@ -1,7 +1,7 @@
 # GAME DESIGN DOCUMENT — TU TIÊN ONLINE
 
 **LiveGame Studio | GAME001 | cultivation_online**  
-**Phiên bản:** 0.1.0 — thiết kế MVP, chờ phê duyệt và cân bằng  
+**Phiên bản:** 0.1.1 — Amendment v0.1.1 (chuẩn hóa lệnh `!hotheauto` trên nền thiết kế MVP v0.1.0; giữ nguyên toàn bộ thông số cân bằng gốc)  
 **Đối tượng:** Codex, Antigravity, game designer, technical artist, người vận hành livestream  
 **Nền tảng:** Windows Desktop, Python/FastAPI, SQLite, TypeScript/Three.js, OBS/TikTok LIVE Studio.
 
@@ -67,7 +67,10 @@ Lệnh không phân biệt hoa thường, trim khoảng trắng; hỗ trợ alia
 | !skill | Kỹ năng nghề | 12s, chỉ trong boss |
 | !defend | Phòng thủ | 8s, chỉ trong boss |
 | !heal | Dùng 1 đan hồi phục | 20s, có vật phẩm |
-| !hothe | Hộ thể | 8s, chỉ trong kiếp |
+| !hothe | Hộ thể thủ công | 8s, chỉ trong kiếp |
+| !hotheauto | Xem trạng thái hộ thể tự động | 5s, cá nhân |
+| !hotheauto on | Bật hộ thể tự động (mặc định bật) | 5s, áp dụng theo server-side timing |
+| !hotheauto off | Tắt hộ thể tự động (chọn chơi thủ công) | 5s, áp dụng theo server-side timing |
 | !info / !status | Thẻ cá nhân | 60s, hàng chờ overlay |
 | !find / !me | Highlight nhân vật | 60s, không ngắt boss |
 | !rank | Bảng xếp hạng chung | 60s |
@@ -137,7 +140,7 @@ Các lần tăng tầng thường: kiểm tra đủ XP, khóa player, trừ XP v
 
 Kiếp: chuẩn bị 5s, 5 thiên lôi cách nhau 4s, kết quả 5s. HP ban đầu 100% riêng cho kiếp, không dùng HP trận boss. Thiên lôi Trúc Cơ gây 17% HP tối đa/đợt; Kim Đan 22%/đợt. `!hothe` giảm 50% sát thương đợt kế tiếp, hiệu lực tối đa 8s và tiêu hao khi trúng lôi; cooldown 8s. Tất cả tính theo đơn vị HP nguyên (thang 1000), làm tròn xuống. HP > 0 sau lôi cuối là thành công. Không có RNG hoặc yêu cầu quà trả phí. Trúc Cơ có thể vượt tự động; Kim Đan cần ít nhất một lần hộ thể đúng lúc hoặc chính sách hỗ trợ miễn phí được cấu hình sau playtest.
 
-Thành công: tiêu XP giữ, tăng cảnh giới, thông báo và lưu nguyên tử. Thất bại: tiêu 10% XP giữ (floor), giải phóng phần còn lại, cooldown thử lại 60s, hồi phục 10s. Hủy trước ACTIVE: giải phóng toàn bộ XP; nếu lỗi hệ thống trong ACTIVE: hủy và hoàn lại toàn bộ XP giữ, không phạt. Không chạy lại event đã kết thúc. Lệnh hộ thể nên được thông báo sớm vì độ trễ livestream; trong MVP có thể bật auto-hộ thể miễn phí cho mọi người để tránh bất lợi do mạng (mặc định bật, tắt qua !hotheauto off khi triển khai alias). Manual chỉ là lựa chọn chơi, không phải điều kiện trả phí.
+Thành công: tiêu XP giữ, tăng cảnh giới, thông báo và lưu nguyên tử. Thất bại: tiêu 10% XP giữ (floor), giải phóng phần còn lại, cooldown thử lại 60s, hồi phục 10s. Hủy trước ACTIVE: giải phóng toàn bộ XP; nếu lỗi hệ thống trong ACTIVE: hủy và hoàn lại toàn bộ XP giữ, không phạt. Không chạy lại event đã kết thúc. Lệnh hộ thể được tính hoàn toàn theo server-side event timing (`SimulationClock`), hỗ trợ độ trễ livestream và không yêu cầu người xem phản ứng khớp khung hình animation trên màn hình phát sóng. Trong MVP, hộ thể tự động miễn phí mặc định **bật**; người chơi có thể chủ động kiểm tra hoặc bật/tắt qua `!hotheauto`, `!hotheauto on`, `!hotheauto off` (hoặc dùng `!hothe` thủ công), và Game Master có thể cấu hình chính sách mặc định cho lượt kiếp mới. Manual chỉ là lựa chọn chơi, không bao giờ dùng quà tặng trả phí để tăng xác suất độ kiếp hay mua hộ thể.
 
 ## 11. Lịch sự kiện và xung đột
 
@@ -272,3 +275,7 @@ Codex phụ trách domain/backend/test; Antigravity review độc lập và ph�
 ## 22. Quản lý thay đổi
 
 Lưu tài liệu vào docs/games/cultivation_online/GDD.md. GDD là nguồn luật gameplay; API Contract và Asset Contract của platform là nguồn chuẩn giao tiếp. Nếu có xung đột, ghi ADR/DECISIONS và yêu cầu review trước khi thay đổi. Mọi thông số cân bằng có config version; thay đổi cần changelog và regression test. Không mở rộng scope MVP trong quá trình thực hiện nếu chưa được phê duyệt.
+
+### Lịch sử sửa đổi (Revision History)
+- **v0.1.0 (Baseline — SHA-256: `0A4F9D8B3D2005D0947A7C48E85F87D6B143ECC851DEB0E6345D27B2FF4AE534`):** Bản thiết kế MVP ban đầu (`GDD_Tu_Tien_Online_v0.1.md`), đã được di chuyển nguyên vẹn qua `git mv` vào `docs/games/cultivation_online/GDD.md` (giải quyết `ADR-007`).
+- **v0.1.1 (2026-11-26 — GD00-FIX01, giải quyết `CONF-04` / `OPEN-05`):** Chuẩn hóa bộ lệnh hộ thể MVP gồm `!hothe`, `!hotheauto`, `!hotheauto on`, `!hotheauto off`; chốt rõ quy tắc hộ thể tự động mặc định bật, Game Master cấu hình được chính sách mặc định, tính toán dựa trên server-side event timing để hỗ trợ độ trễ livestream, không đòi hỏi phản ứng khớp thời gian animation và không dùng quà trả phí tăng xác suất độ kiếp. Giữ nguyên 100% các thông số cân bằng gốc của v0.1.0.

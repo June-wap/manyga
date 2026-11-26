@@ -45,11 +45,10 @@ D:\Tiktok Mini Game\
 ├── asset_production/           # Prompts, specs, validation checklists sản xuất asset ngoài (TT-AS)
 ├── docs/                       # Toàn bộ tài liệu đặc tả, kiến trúc, hợp đồng và báo cáo
 │   ├── platform/               # TDD, Module Design, DB Design, Contracts, UI, Testing, TikTok Feasibility
-│   └── games/cultivation_online/ # GDD requirements mapping và tài liệu riêng GAME001
+│   └── games/cultivation_online/ # GDD.md chính thức (Single Source of Truth) và GDD_REQUIREMENTS_MAPPING.md
 ├── scripts/                    # Công cụ dev/bootstrap/migration/benchmark cục bộ
 ├── tests/                      # Unit, integration, contract, UI, replay & benchmark tests
 ├── AGENTS.md                   # Quy tắc phối hợp giữa Codex và Antigravity
-├── GDD_Tu_Tien_Online_v0.1.md  # GDD gốc v0.1.0 của Tu Tiên Online (không tự ý ghi đè)
 └── README.md                   # Tài liệu này
 ```
 
@@ -79,7 +78,8 @@ D:\Tiktok Mini Game\
 - [docs/platform/TIKTOK_INTEGRATION_FEASIBILITY.md](docs/platform/TIKTOK_INTEGRATION_FEASIBILITY.md) — Nghiên cứu khả thi tích hợp TikTok được cấp quyền.
 
 ### GAME001 & Báo cáo GD00
-- [GDD_Tu_Tien_Online_v0.1.md](GDD_Tu_Tien_Online_v0.1.md) — Game Design Document gốc (v0.1.0).
+- [docs/games/cultivation_online/GDD.md](docs/games/cultivation_online/GDD.md) — Game Design Document chính thức (`v0.1.1`, Single Source of Truth cho gameplay GAME001).
 - [docs/games/cultivation_online/GDD_REQUIREMENTS_MAPPING.md](docs/games/cultivation_online/GDD_REQUIREMENTS_MAPPING.md) — Đối chiếu yêu cầu GDD vào Platform & các điểm xung đột/chưa xác minh.
-- [docs/GD00_ENVIRONMENT_REPORT.md](docs/GD00_ENVIRONMENT_REPORT.md) — Báo cáo kiểm tra môi trường thực tế trên máy Windows.
+- [docs/GD00_ENVIRONMENT_REPORT.md](docs/GD00_ENVIRONMENT_REPORT.md) — Báo cáo kiểm tra môi trường & phần cứng thực tế (gồm `nvidia-smi`).
 - [docs/GD00_DELIVERY_REPORT.md](docs/GD00_DELIVERY_REPORT.md) — Báo cáo bàn giao GD00 và đánh giá Acceptance Criteria.
+- [docs/GD00_FIX01_REPORT.md](docs/GD00_FIX01_REPORT.md) — Báo cáo giải quyết các quyết định mở `GD00-FIX01` (`ADR-007`, `CONF-04`, hardware, performance targets).

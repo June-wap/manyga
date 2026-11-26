@@ -117,7 +117,7 @@ DISCOVERED → REGISTERED → LOADED → SESSION_STARTING → RUNNING ⇄ PAUSED
 - Mọi thay đổi tài nguyên/thưởng bắt buộc gọi `PlatformServices.reward_ledger.grant_idempotent(uow, ...)` trong cùng `UnitOfWork`.
 
 ### 4.3 Event Handling & Game Configuration
-- `handle_command(ctx)` nhận `ParsedCommand` đã được Platform chuẩn hóa, dedupe và kiểm tra cooldown cơ bản. Mọi lệnh được gắn `ctx.player_id` của chính người gửi (không thể điều khiển người khác).
+- `handle_command(ctx)` nhận `ParsedCommand` đã được Platform chuẩn hóa, dedupe và kiểm tra cooldown cơ bản (hỗ trợ cả lệnh đơn và subcommand/argument tường minh như `!hotheauto`, `!hotheauto on`, `!hotheauto off`). Mọi lệnh được gắn `ctx.player_id` của chính người gửi (không thể điều khiển người khác) và đánh giá hoàn toàn theo **server-side event timing (`SimulationClock`)**, không yêu cầu người xem phản ứng khớp thời gian animation trên livestream.
 - `handle_cosmetic_gift(ctx)` **chỉ được trả về `list[CosmeticEffectIntent]`** (hiệu ứng thị giác/âm thanh); không được cấp `UnitOfWork` ghi tiến trình để thực thi cứng chính sách chống pay-to-win (`ADR-009`).
 - Cấu hình cân bằng có `config_schema_version`; thay đổi cấu hình trong lúc đang chạy chỉ có hiệu lực ở **event mới hoặc phiên mới**, không sửa nóng giữa trận đang `ACTIVE`.
 
