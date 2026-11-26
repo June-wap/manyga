@@ -8,7 +8,8 @@ Ngày: 2026-11-26 (Asia/Saigon). **Overall status: PARTIAL** — implementation 
 - Đã kiểm tra git status/history trước triển khai; không ghi đè thay đổi người dùng, không tạo repo/worktree khác, không push/merge.
 - GD00 final review đã được đọc thực tế trong phiên: reviewed commit `592db85`, `Final Decision: PASS`, `Gate Determination: READY_FOR_GD01`, 0 blockers GD01. Review có LOW nonblocking về recovery protocol dành cho GD05.
 - Tệp `GD00_FINAL_REVIEW.md` xuất hiện ở trạng thái untracked trong lúc kiểm tra rồi không còn trên đĩa; Codex không sửa/xóa tệp đó. Chủ dự án đã xác nhận qua chat: **“Dùng kết luận PASS đã đọc; ghi rõ trong báo cáo”**. Báo cáo này ghi nhận quan sát và xác nhận đó, không thay thế review gốc.
-- Commit hashes: bổ sung sau commit implementation ở phần cuối báo cáo. Các tài liệu GD00 và GDD giữ nguyên, ngoại trừ README, PROJECT_STATUS và CHANGELOG được cập nhật đúng deliverables.
+- Implementation commit: `2fa9fc7b62a075f2e70f5eddb58e85ae271ace7a` (`2fa9fc7`). Documentation finalization commit là commit chứa bản báo cáo này, xác định bằng `git log -1 --format=%H -- docs/GD01_DELIVERY_REPORT.md`; hash được ghi trong phản hồi bàn giao. Các tài liệu GD00 và GDD giữ nguyên, ngoại trừ README, PROJECT_STATUS và CHANGELOG được cập nhật đúng deliverables.
+- Sau commit implementation, các ảnh `.jfif` không thuộc task xuất hiện ở root. Giữ nguyên, không stage/commit/xóa. Vì vậy status toàn workspace có external untracked files; không gọi working tree hoàn toàn sạch. Commit GD01 chỉ chứa source, lockfiles, tài liệu và evidence được yêu cầu; không database/log/secret/build artifacts.
 
 ## Environment / dependencies
 
