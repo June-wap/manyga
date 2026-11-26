@@ -1,0 +1,13 @@
+
+> livegame-studio-foundation@0.1.0 test
+> vitest run
+
+
+ RUN  v5.1.2 D:/Tiktok Mini Game/frontend
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  09:28:42
+   Duration  383ms (import 65%, transform 17%, worker 10%, tests 7%)
+

@@ -1,6 +1,22 @@
 # GD01 — FOUNDATION DELIVERY REPORT
 
-Ngày: 2026-11-26 (Asia/Saigon). **Overall status: PARTIAL** — implementation và kiểm thử GD01 đã hoàn tất; **independent Antigravity review: NOT RUN**, chưa chốt phase gate theo `TESTING_POLICY.md` mục 5. Không chuyển GD02.
+Ngày: 2026-11-26 (Asia/Saigon). **Overall status: PARTIAL — GD01-RC1 READY_FOR_INDEPENDENT_REVIEW**. Implementation và kiểm thử đã hoàn tất trong phạm vi GD01; **independent review BLOCKED** bởi quyền CLI đã ghi nhận, không retry/bypass trong RC1. Không chuyển GD02.
+
+## GD01-RC1 — current delivery, supersedes earlier test totals
+
+Source reviewed/tested: `f60bf4ac283e769ca5e79a441a8ee8298eddaabc`, baseline RC1 `959bb3a44b2daa062acc2fbbe2000eb4e907de65`, branch `integration/gd01`. Hai lỗi header/Uvicorn exception redaction đã tái hiện và sửa. Bổ sung real-process Unicode CWD/isolation/restart/port-conflict/security, unrelated-process ownership, GPU-optional absence và actual static-build WebGL checks. Không triển khai GD02 hoặc future asset modules.
+
+| Status | RC1 result |
+|---|---|
+| IMPLEMENTATION_STATUS | IMPLEMENTED — GD01 candidate |
+| AUTOMATED_TEST_STATUS | PASS — **57** (49 pytest + 3 Vitest + 5 Playwright), 0 FAIL/0 SKIP final run |
+| INTEGRATION_TEST_STATUS | PASS — actual backend, GUI/QWebEngine, static/dev browser WebGL, graceful/forced owned cleanup |
+| INDEPENDENT_REVIEW_STATUS | BLOCKED — existing CLI command-permission denial, not retried |
+| OVERALL_ACCEPTANCE_STATUS | PARTIAL — READY_FOR_INDEPENDENT_REVIEW |
+
+Entry command: `.\.venv\Scripts\python.exe scripts/prepare_rc1_evidence.py`, exit 0. Chín commands con đều exit 0. Xem [GD01_REVIEW_EVIDENCE.md](GD01_REVIEW_EVIDENCE.md) để đối chiếu 13 deliverables, audit findings, exact command outputs/counts, security/portability limitations và future asset phase mapping. [RC1 command provenance](evidence/gd01/rc1/commands.json) và [actual screenshots/cleanup](evidence/gd01/rc1/embedded-smoke.json) là dữ liệu chạy mới, không reuse PASS cũ. Kiểm thử trên một Windows PC, không multi-PC compatibility PASS.
+
+Các phần dưới giữ nguyên provenance/baseline delivery. Số 37/47 test của các mốc trước là lịch sử, không phải final RC1 count. Commit documentation/evidence được xác định bằng `git log -1 --format=%H -- docs/GD01_REVIEW_EVIDENCE.md` và ghi trong phản hồi bàn giao.
 
 **Addendum cùng ngày:** ADR-021 thay default paths sang `%LOCALAPPDATA%\LiveGameStudio` và chốt Standalone deployment. Kết quả 37 tests trong báo cáo này là baseline tại `2fa9fc7`, không phải kết quả chạy lại update. Xem [architecture update report](GD01_ARCHITECTURE_UPDATE_REPORT.md) cho changes, tests và review mới; giữ lịch sử bàn giao baseline.
 

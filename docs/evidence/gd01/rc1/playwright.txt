@@ -1,0 +1,22 @@
+
+> livegame-studio-foundation@0.1.0 test:e2e
+> playwright test
+
+
+Running 5 tests using 1 worker
+
+  ok 1 ..\tests\frontend\runtime.spec.ts:6:1 › real WebGL, rotation, 9:16, resize and disposal (1.6s)
+  ok 2 ..\tests\frontend\runtime.spec.ts:50:1 › WebGL unavailable shows a real error state (243ms)
+  ok 3 ..\tests\frontend\runtime.spec.ts:63:1 › real context loss stops animation and releases resources (682ms)
+  ok 4 ..\tests\frontend\runtime.spec.ts:74:1 › static production build renders without dev client or external resources (1.0s)
+  ok 5 ..\tests\frontend\runtime.spec.ts:93:1 › missing optional GPU debug extension keeps actual WebGL running (730ms)
+
+  5 passed (6.7s)
+[WebServer] (node:30680) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:25268) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+(node:26960) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 9:28:47 AM [vite] (client) [console.error] THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+[WebServer] 9:28:47 AM [vite] (client) [console.warn] THREE.WebGLRenderer: WEBGL_lose_context extension not supported.

@@ -1,0 +1,19 @@
+
+> livegame-studio-foundation@0.1.0 build
+> tsc --noEmit && vite build
+
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 8 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.65 kB │ gzip:   0.45 kB
+dist/assets/index-DoI90POS.css    0.75 kB │ gzip:   0.44 kB
+dist/assets/index-B0_Vy6lA.js   542.31 kB │ gzip: 134.93 kB
+
+✓ built in 426ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.

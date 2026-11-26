@@ -8,7 +8,15 @@
 
 **Deployment decision:** `ADR-021 — STANDALONE LOCAL DESKTOP`, mỗi thiết bị/Windows user độc lập, Hybrid Cloud cũ superseded. GD01 tiếp tục; GD02 schema/seed/migrations và GD20 installer chưa triển khai. Xem `docs/GD01_ARCHITECTURE_UPDATE_REPORT.md` cho trạng thái kiểm thử/review của cập nhật portability, phân biệt với kết quả baseline bên dưới.
 
-**Trạng thái tổng thể GD01:** `PARTIAL — IMPLEMENTATION VERIFIED, INDEPENDENT REVIEW PENDING`. Regression sau ADR-021: 47 automated tests PASS (41 pytest + 3 Vitest + 3 Playwright); real Desktop/QWebEngine, PowerShell start/stop và không orphan PASS. Delta contract review Antigravity đã thử nhưng `BLOCKED` bởi quyền command của CLI headless; full GD01 independent acceptance vẫn NOT RUN. Chờ review trước khi chốt phase gate.
+**Trạng thái tổng thể GD01:** `PARTIAL — GD01-RC1 READY_FOR_INDEPENDENT_REVIEW`. RC1 source `f60bf4a`; 57 automated tests PASS (49 pytest + 3 Vitest + 5 Playwright), GUI/static/dev WebGL/owned cleanup PASS. Independent review vẫn BLOCKED bởi CLI command permission, không retry/bypass/chuyển agent. Xem `docs/GD01_REVIEW_EVIDENCE.md`; chưa GD01 Final Acceptance PASS.
+
+| RC1 status field | Kết quả |
+|---|---|
+| IMPLEMENTATION_STATUS | IMPLEMENTED — GD01 scope |
+| AUTOMATED_TEST_STATUS | PASS — 57/57 final run |
+| INTEGRATION_TEST_STATUS | PASS — actual GUI/WebGL/HTTP/process tests |
+| INDEPENDENT_REVIEW_STATUS | BLOCKED — existing permission denial, not retried |
+| OVERALL_ACCEPTANCE_STATUS | PARTIAL — READY_FOR_INDEPENDENT_REVIEW |
 **Trạng thái tổng thể GD00:** `PASS — READY FOR GD01 APPROVAL (GD00 + GD00-FIX01 + GD00-FIX02 COMPLETE)` *(toàn bộ 6 HIGH, 4 MEDIUM và 1 LOW design findings đã được kiểm chứng và giải quyết tại `docs/GD00_INDEPENDENT_REVIEW.md` và `docs/GD00_FIX02_REPORT.md`)*
 
 ---
@@ -18,7 +26,7 @@
 | Giai đoạn | Tên | Trạng thái | Ghi chú |
 |---|---|---|---|
 | **GD00** | Project Design & Initialization (`+ FIX01 + FIX02`) | **COMPLETED (Design Review Findings Resolved)** | Toàn bộ 24 tài liệu nền tảng + `GD01_SCOPE.md` + `GD00_INDEPENDENT_REVIEW.md` + `GD00_FIX02_REPORT.md` trên `design/gd00` |
-| GD01 | Platform Foundation | `IMPLEMENTED / REVIEW PENDING` | Sau ADR-021: 41 pytest + 3 Vitest + 3 Playwright PASS; GUI/WebGL/owned shutdown PASS; delta review BLOCKED, full independent acceptance pending |
+| GD01 | Platform Foundation | `RC1 / REVIEW BLOCKED` | 49 pytest + 3 Vitest + 5 Playwright PASS; real GUI/static WebGL/owned shutdown PASS, independent acceptance pending |
 | GD02 | Database & Application Services | `NOT STARTED` | Phụ thuộc GD01 |
 | GD03 | Desktop Shell & Game Master UI | `NOT STARTED` | Phụ thuộc GD01–GD02 |
 | GD04 | Event Gateway & Simulator | `NOT STARTED` | Phụ thuộc GD02 |

@@ -1,0 +1,136 @@
+{
+  "reviewed_source_commit": "f60bf4ac283e769ca5e79a441a8ee8298eddaabc",
+  "baseline": "959bb3a44b2daa062acc2fbbe2000eb4e907de65",
+  "accepted_GD00": "592db8512de13fff24cd894b2468c328176e70b4",
+  "branch": "integration/gd01",
+  "python_counts": {
+    "tests": 49,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "commands": [
+    {
+      "check": "ruff",
+      "command": [
+        "D:\\Tiktok Mini Game\\.venv\\Scripts\\python.exe",
+        "-m",
+        "ruff",
+        "check",
+        "core",
+        "apps",
+        "scripts",
+        "tests"
+      ],
+      "cwd": "D:\\Tiktok Mini Game",
+      "exit_code": 0,
+      "status": "PASS",
+      "output": "ruff.txt"
+    },
+    {
+      "check": "pytest",
+      "command": [
+        "D:\\Tiktok Mini Game\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "--basetemp=D:\\Tiktok Mini Game\\runtime\\rc1-pytest",
+        "--junitxml=D:\\Tiktok Mini Game\\runtime\\rc1-pytest.xml"
+      ],
+      "cwd": "D:\\Tiktok Mini Game",
+      "exit_code": 0,
+      "status": "PASS",
+      "output": "pytest.txt"
+    },
+    {
+      "check": "typecheck",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.EXE",
+        "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js",
+        "run",
+        "typecheck"
+      ],
+      "cwd": "D:\\Tiktok Mini Game\\frontend",
+      "exit_code": 0,
+      "status": "PASS",
+      "output": "typecheck.txt"
+    },
+    {
+      "check": "production-build",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.EXE",
+        "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js",
+        "run",
+        "build"
+      ],
+      "cwd": "D:\\Tiktok Mini Game\\frontend",
+      "exit_code": 0,
+      "status": "PASS",
+      "output": "production-build.txt"
+    },
+    {
+      "check": "vitest",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.EXE",
+        "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js",
+        "test"
+      ],
+      "cwd": "D:\\Tiktok Mini Game\\frontend",
+      "exit_code": 0,
+      "status": "PASS",
+      "output": "vitest.txt"
+    },
+    {
+      "check": "playwright",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.EXE",
+        "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js",
+        "run",
+        "test:e2e"
+      ],
+      "cwd": "D:\\Tiktok Mini Game\\frontend",
+      "exit_code": 0,
+      "status": "PASS",
+      "output": "playwright.txt"
+    },
+    {
+      "check": "embedded-and-cleanup",
+      "command": [
+        "D:\\Tiktok Mini Game\\.venv\\Scripts\\python.exe",
+        "scripts/verify_integration.py"
+      ],
+      "cwd": "D:\\Tiktok Mini Game",
+      "exit_code": 0,
+      "status": "PASS",
+      "output": "embedded-and-cleanup.txt"
+    },
+    {
+      "check": "desktop-start-stop",
+      "command": [
+        "D:\\Tiktok Mini Game\\.venv\\Scripts\\python.exe",
+        "scripts/verify_dev_scripts.py"
+      ],
+      "cwd": "D:\\Tiktok Mini Game",
+      "exit_code": 0,
+      "status": "PASS",
+      "output": "desktop-start-stop.txt"
+    },
+    {
+      "check": "pip-check",
+      "command": [
+        "D:\\Tiktok Mini Game\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "cwd": "D:\\Tiktok Mini Game",
+      "exit_code": 0,
+      "status": "PASS",
+      "output": "pip-check.txt"
+    }
+  ],
+  "independent_review_status": "BLOCKED — existing Antigravity command-permission denial; not retried",
+  "overall_acceptance_status": "PARTIAL",
+  "vitest_passed": 3,
+  "playwright_passed": 5
+}

@@ -4,6 +4,19 @@ Mọi thay đổi đáng chú ý của dự án được ghi nhận tại đây 
 
 ---
 
+## [0.1.0-gd01-rc1] - 2026-11-26
+
+### Fixed
+- Tái hiện/sửa free-text Authorization Basic/multi-cookie redaction còn lộ giá trị và Uvicorn re-log ASGI exception ngoài safe logger. Console handlers dùng cùng registered-secret redaction; UTF-8 console được cấu hình khi hỗ trợ.
+
+### Review evidence
+- Source candidate `f60bf4a`, baseline `959bb3a`; thêm recorded RC1 runner, source manifest/tree, command outputs/exit codes, GUI/static WebGL screenshots và descendant cleanup evidence.
+- Final regression **57 PASS** (49 pytest, 3 Vitest, 5 Playwright), gồm actual Unicode CWD, temp A/B DB isolation/restart, real CLI port conflict/HTTP security, optional GPU-tool/debug-extension absence, external/unrelated process preservation và static production rendering.
+- Tạo `GD01_REVIEW_EVIDENCE.md`, cập nhật delivery/status, ghi tracker asset/cache/factory/skeleton/appearance/LOD/persistence cho GD07/GD08/GD09/GD11/GD19; không implement GD01.
+- Independent review giữ BLOCKED; không retry Antigravity, không chuyển agent hoặc bypass permission/execution policy. Overall PARTIAL/READY_FOR_INDEPENDENT_REVIEW; không GD02, không push/merge.
+
+---
+
 ## [0.1.0-gd01-standalone] - 2026-11-26
 
 ### Architecture / scope clarification

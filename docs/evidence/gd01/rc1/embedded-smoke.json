@@ -1,0 +1,74 @@
+{
+  "status": "PASS",
+  "checks": {
+    "backend_health": "PASS",
+    "sqlite": "PASS",
+    "loopback_binding": "PASS",
+    "embedded_webgl": "PASS",
+    "resize_and_animation": "PASS",
+    "backend_unavailable": "PASS",
+    "owned_shutdown": "PASS",
+    "no_orphan_descendants": "PASS"
+  },
+  "ports": [
+    51532,
+    51533
+  ],
+  "gpu_flags": "none",
+  "backend_binding": {
+    "LocalAddress": "127.0.0.1",
+    "LocalPort": 51532,
+    "OwningProcess": 23376
+  },
+  "embedded_webgl": {
+    "state": "running",
+    "frames": 71,
+    "aspect": 0.5625,
+    "width": 416,
+    "height": 740,
+    "renderer": "WebKit WebGL",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "gpuRenderer": "ANGLE (Intel, Intel(R) UHD Graphics (0x000046A3) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "gpuGeometries": 8,
+    "drawCalls": 8,
+    "released": 0,
+    "resources": 16,
+    "disposed": false
+  },
+  "descendants": [
+    {
+      "ProcessId": 16368,
+      "Name": "python.exe"
+    },
+    {
+      "ProcessId": 29604,
+      "Name": "conhost.exe"
+    },
+    {
+      "ProcessId": 11980,
+      "Name": "node.exe"
+    },
+    {
+      "ProcessId": 29848,
+      "Name": "conhost.exe"
+    },
+    {
+      "ProcessId": 23376,
+      "Name": "python.exe"
+    },
+    {
+      "ProcessId": 3116,
+      "Name": "QtWebEngineProcess.exe"
+    },
+    {
+      "ProcessId": 29404,
+      "Name": "conhost.exe"
+    }
+  ],
+  "backend_exit_code": 0,
+  "owned_pids": [
+    16368,
+    11980
+  ],
+  "process_survivors": []
+}
