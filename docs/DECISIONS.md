@@ -2,6 +2,8 @@
 
 Tài liệu ghi nhận toàn bộ quyết định kiến trúc quan trọng của **LiveGame Studio** và các điểm đối chiếu (reconciliation) giữa Platform Design (`GD00`) và `docs/games/cultivation_online/GDD.md`.
 
+**Quyết định triển khai hiện hành:** ADR-021 (2026-11-26) — Standalone Local-first Windows Desktop, độc lập theo thiết bị và Windows user. Mọi đề xuất Hybrid Cloud trước đây, kể cả ngoài repository, đều **SUPERSEDED** bởi quyết định này; giữ nguyên lịch sử ADR-001–020.
+
 ---
 
 ## ADR-001: Kiến trúc Modular Monolith, Windows Desktop, Local-First
@@ -130,3 +132,13 @@ Tài liệu ghi nhận toàn bộ quyết định kiến trúc quan trọng củ
 - **Trạng thái:** Accepted (`GD00-FIX02`, 2026-11-26)
 - **Ngày:** 2026-11-26
 - **Quyết định:** Tách biệt Gameplay Execution Queue, Camera Focus Queue và Event Presentation Queue (không ép mọi sự kiện cá nhân lên camera chính). Khi `Event Bus` đạt `100%`, áp dụng Admission Control + Explicit Rejection (`INGESTION_QUEUE_FULL` / `HTTP 429`) có bounded enqueue timeout, metrics và auditability — không silent drop gameplay commands và không block vô hạn Event Gateway.
+
+## ADR-021: Standalone Multi-device Local Desktop và Device-local Persistence
+- **Trạng thái:** Accepted — quyết định trực tiếp của chủ dự án ngày 2026-11-26; review đối chiếu contract độc lập được theo dõi trong báo cáo cập nhật GD01.
+- **Bối cảnh:** Cần phân phối một ứng dụng cài trên nhiều Windows PC. “Multi-device” nghĩa là nhiều bản cài độc lập, không phải nhiều client cùng một backend/world. Mô hình Hybrid Cloud và mọi cloud roadmap cũ là **SUPERSEDED**, không xóa lịch sử.
+- **Quyết định:** Mỗi máy + Windows user có SQLite riêng dưới `%LOCALAPPDATA%\LiveGameStudio`; TikTok User ID chỉ map trong local DB, progression khóa theo game/world. Cùng viewer trên máy B bắt đầu mới nếu DB B chưa có người này; không có cloud identity, cloud save, replication, network-share DB hoặc tự import dữ liệu từ máy A. Không hardware fingerprint.
+- **First run / update:** GD02 tạo DB khi chưa tồn tại, chạy migration tương ứng version và seed application settings, default game configs, trusted built-in metadata (phù hợp game được phân phối). Không seed players, characters, progression, inventory, rewards, sessions, leaderboards hoặc developer accounts. DB đã có phải kiểm tra schema compatibility, migrate không mất dữ liệu; version đổi không được reset/copy đè sample DB. Preserve dữ liệu qua app/Windows restart, live session mới và cập nhật app/game tương thích. Schema mới hơn/không tương thích phải báo lỗi và giữ nguyên DB, không fallback reset.
+- **Paths:** Tách installation/resources readonly khỏi user data, DB, config, assets, cache, logs writable. Hỗ trợ Unicode/dấu cách, không ghi DB vào Program Files, chạy bình thường không admin. GD01 dùng resolver/path smoke; GD02 quản lý DB/config lifecycle; GD07 quản lý assets; GD20 đóng gói Python runtime + frontend production resources, end user không cần Python/Node/Git/Blender/Codex/Antigravity. `.env` trong checkout chỉ là dev override, không phân phối.
+- **Local management:** Trusted built-in allowlist vẫn theo ADR-010. Trusted game package là thiết kế tương lai có integrity/manifest/version/compatibility/assets validation, không cho load arbitrary Python. Không Cloud Game Catalog/Remote Download Server MVP. Reset một game phải explicit confirmation + audit, giữ game khác/settings ngoài phạm vi/production assets; không implement GD01. Backup/restore giữa thiết bị không bắt buộc MVP.
+- **Hardware:** Không bắt buộc NVIDIA. Graphics presets/LOD/texture quality/visibility budget/capability detection/graceful fallback theo GD09/GD19; benchmark nhiều CPU/GPU ở GD19. Không dùng kết quả một laptop để nhận mọi cấu hình đạt hiệu năng.
+- **Scope / impact:** Clarification không đổi API/event/gameplay schema, không tăng schema version. Thay đổi hành vi default path GD01 từ checkout sang user-local; DB smoke cũ giữ nguyên tại chỗ, không tự di chuyển/import. `LGS_*` overrides local tường minh còn hỗ trợ để dev/test. Không production migration/schema/installer trong GD01. Roadmap giữ GD00–GD20, không GD21–GD26; Cloud Backend/Database/Save/Auth/Analytics, Global Player Profiles, distributed game state, centralized device management và subscription đều loại khỏi required scope. Cấu trúc 14 Platform + 8 GAME001 tables không đổi; cụm “global player” trong tài liệu cũ chỉ được hiểu là dùng chung giữa game **bên trong cùng local database**.

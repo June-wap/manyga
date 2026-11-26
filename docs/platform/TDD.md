@@ -7,6 +7,26 @@
 
 ## 1. Kiến trúc tiến trình & Runtime (Process & Runtime Topology)
 
+### Deployment / filesystem boundary (`ADR-021`)
+
+Standalone Windows PC/user độc lập; không shared backend/DB/state giữa thiết bị. Mọi Hybrid Cloud cũ superseded, không cloud save/identity/auth/analytics hay subscription runtime. TikTok authorized provider GD17 là nguồn event bên ngoài, không là server lưu progression của Platform.
+
+| Path | Vai trò / phase |
+|---|---|
+| Installation directory | Code + bundled readonly resources; GD01 checkout root, GD20 installed bundle, relocation không thay user DB |
+| `%LOCALAPPDATA%\LiveGameStudio` | Writable root của Windows user; không admin, không hardcode profile/drive |
+| `database/` | GD01 `smoke.sqlite3`; GD02 production `livegame_studio.db` + schema version/migrations |
+| `config/` | Local user config; GD01 resolver, dev `.env` vẫn là optional checkout override; packaged loading GD20 |
+| `assets/` | Writable validated user asset packages (GD07); shipped readonly resources được resolve riêng từ installation |
+| `cache/` | Disposable cache, không chứa authoritative player state |
+| `logs/` | UTF-8 rotating/redacted logs; không trộn với DB/config |
+
+GD01 resolver mặc định per-user root, override `LGS_DATA_DIR` và path fields local tường minh cho dev/tests, path Unicode/dấu cách. Không tự copy/move DB smoke cũ trong checkout. UNC và mapped network drives bị từ chối; không đặt authoritative DB trong cloud-sync folder (guard kiểm chứng đầy đủ theo quản lý DB ở GD02/packaging GD20, không tuyên bố GD01 phát hiện mọi sync provider). Không yêu cầu device fingerprint. `.env` developer, test DB và secrets không được đưa vào installer.
+
+GD02 first-run: absent DB → migrate schema phù hợp → seed defaults/trusted metadata → zero players/history. Existing DB → check schema compatibility → safe local backup/migration → preserve all game/world data; không reset theo app/game version, live mới hay Windows restart. Incompatible/newer schema và migration failure báo lỗi/rollback, không recreate. Không import/sync xuyên thiết bị. Reset một game là design deferred, confirmation + audit + scoped isolation, không xóa assets/game khác/settings ngoài scope.
+
+GD20 bundle Python runtime, PySide6 và frontend production resources; không cần end-user Python/Node/Git/Blender/Codex/Antigravity, không Vite dev server trong release. Trusted game packages phải manifest/version/compatibility/assets/integrity validate; MVP giữ static built-in allowlist. Không NVIDIA requirement: GD09/GD19 graphics presets, LOD, texture/visibility budgets, WebGL capability và fallback, benchmark đa CPU/GPU.
+
 LiveGame Studio vận hành theo mô hình **Local-First Multi-Process Supervised Desktop** trên Windows 11/10 (64-bit):
 
 1. **Desktop Supervisor / UI Process (`apps/desktop`, PySide6):**

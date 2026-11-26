@@ -1,0 +1,15 @@
+{
+  "required_documents_updated": 11,
+  "roadmap_phase_count": 21,
+  "GDD_sha256": "9AE22943227E2096B6FCF82F5E983DAEDE7CD6A498437854512D75737680E2AB",
+  "broken_local_links": [],
+  "architecture_check": "PASS",
+  "independent_review": "BLOCKED: Antigravity headless command permission denied",
+  "regression_observed": {
+    "pytest_pass": 41,
+    "vitest_pass": 3,
+    "playwright_pass": 3,
+    "fail": 0,
+    "skip": 0
+  }
+}

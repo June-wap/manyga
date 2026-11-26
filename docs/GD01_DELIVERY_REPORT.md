@@ -2,6 +2,8 @@
 
 Ngày: 2026-11-26 (Asia/Saigon). **Overall status: PARTIAL** — implementation và kiểm thử GD01 đã hoàn tất; **independent Antigravity review: NOT RUN**, chưa chốt phase gate theo `TESTING_POLICY.md` mục 5. Không chuyển GD02.
 
+**Addendum cùng ngày:** ADR-021 thay default paths sang `%LOCALAPPDATA%\LiveGameStudio` và chốt Standalone deployment. Kết quả 37 tests trong báo cáo này là baseline tại `2fa9fc7`, không phải kết quả chạy lại update. Xem [architecture update report](GD01_ARCHITECTURE_UPDATE_REPORT.md) cho changes, tests và review mới; giữ lịch sử bàn giao baseline.
+
 ## Baseline và Git
 
 - Baseline: `592db8512de13fff24cd894b2468c328176e70b4` (`592db85`). Branch: `integration/gd01`, theo yêu cầu task.

@@ -8,6 +8,16 @@
 
 ## 1. Tầm nhìn và Mục tiêu sản phẩm
 
+### Deployment decision hiện hành — ADR-021
+
+LiveGame Studio là **Standalone Local-first Windows Desktop Platform**, cài đặt được trên nhiều máy độc lập. Mỗi thiết bị và Windows user có DB/world riêng; không Hybrid Cloud hoặc đồng bộ xuyên thiết bị. Quyết định chủ dự án 2026-11-26 supersede mọi đề xuất Hybrid Cloud trước đây; không mở roadmap GD21–GD26.
+
+First run GD02 tạo schema tương ứng phiên bản và seed default application settings, game configurations, trusted built-in metadata, **zero players/gameplay history/test accounts**. TikTok User A có thể là Kim Đan trên máy A nhưng bắt đầu Phàm Nhân trên DB B mới. “Định danh dùng chung” của Platform chỉ có nghĩa trong một local DB, không cloud global identity. Progression tách theo plugin/world, bảo toàn qua app/Windows restart, live mới và cập nhật tương thích; migrations không reset/copy đè DB hiện hữu. Không tự import hoặc chia sẻ DB qua network/cloud folders.
+
+Writable user root mặc định `%LOCALAPPDATA%\LiveGameStudio`, tách installation, DB, config, assets, cache, logs; Unicode/dấu cách và chạy không admin. GD01 chỉ path resolver + SQLite smoke; GD02 production init/migrations, GD07 asset management, GD20 Windows Installer bundle Python runtime + built frontend; end user không cần Python/Node/Git/Blender/Codex/Antigravity. Installer không chứa development DB/test accounts/.env/credentials.
+
+Không required cloud backend/database/save/auth/analytics, distributed state, global cloud player profiles, centralized device management, subscription, Cloud Catalog hoặc Remote Game Download Server. Trusted built-in/game package cần manifest/version/compatibility/required assets/integrity; MVP vẫn static allowlist ADR-010. Reset game có confirmation/audit và cách ly dữ liệu, không làm GD01; cross-device backup/restore không bắt buộc MVP. Graphics presets/LOD/texture quality/visibility budgets/capability fallback phải hỗ trợ nhiều CPU/GPU, không bắt buộc NVIDIA; benchmark đa máy tại GD19.
+
 **LiveGame Studio** là một nền tảng phần mềm **Windows Desktop (Local-first)** giúp người vận hành livestream (Host / Game Master) chạy nhiều mini game tương tác thời gian thực với khán giả TikTok LIVE trên cùng một phần mềm thống nhất.
 
 ### Vấn đề giải quyết

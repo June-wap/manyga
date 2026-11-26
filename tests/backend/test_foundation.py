@@ -17,10 +17,15 @@ from core.sqlite_smoke import connect, run_smoke
 
 def test_settings_defaults_and_relative_paths(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Windows user"))
     settings = Settings(_env_file=None)
     assert settings.backend_host == "127.0.0.1"
-    assert settings.data_dir == PROJECT_ROOT / "data"
-    assert settings.db_path == PROJECT_ROOT / "data/smoke.sqlite3"
+    assert settings.data_dir == tmp_path / "Windows user/LiveGameStudio"
+    assert settings.db_path == settings.data_dir / "database/smoke.sqlite3"
+    assert settings.installation_dir == PROJECT_ROOT
+    override = Settings(_env_file=None, data_dir="runtime/explicit-dev")
+    assert override.data_dir == PROJECT_ROOT / "runtime/explicit-dev"
+    assert override.log_dir == override.data_dir / "logs"
 
 
 @pytest.mark.parametrize(

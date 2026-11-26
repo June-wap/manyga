@@ -3,6 +3,8 @@
 **Phiên bản:** 1.0.0 (GD00 Baseline)  
 **Chiến lược:** Vertical Slice Development — phát triển Platform (`GD00`–`GD20`) song hành kiểm chứng trực tiếp qua `GAME001` (Tu Tiên Online, `TT-GD01`–`TT-GD08`), tách độc lập luồng sản xuất mỹ thuật (`TT-AS01`–`TT-AS09`).
 
+**Deployment lock — ADR-021:** Standalone Local-first Windows Desktop, mỗi thiết bị/Windows user độc lập; không Hybrid Cloud/cross-device sync. Các đề xuất Cloud cũ **SUPERSEDED**, không required Cloud Backend/DB/Save/Auth/Analytics, global cloud players, distributed state, centralized device management hay subscription. Roadmap vẫn đúng 21 phase GD00–GD20, không GD21–GD26. Không restart GD00 hay ngừng GD01 vì thay đổi thiết kế này.
+
 ---
 
 ## 1. Bảng ánh xạ Lộ trình Platform (`GD00`–`GD20`) với Game Track (`TT-GD01`–`TT-GD08`)
@@ -32,6 +34,7 @@
 - **Out-of-scope requirements:** Không triển khai GD01, không chạy migration DB, không tạo production asset, không tích hợp TikTok thật.
 
 ### GD01 – Platform Foundation *(Chi tiết ràng buộc tại `docs/platform/GD01_SCOPE.md`)*
+- **ADR-021 clarification:** Configuration/path foundation mặc định `%LOCALAPPDATA%\LiveGameStudio`, tách readonly installation và writable DB/config/assets/cache/logs; Unicode/dấu cách, simulated user-root isolation, relocation resolver, SQLite smoke persistence. Không init/seed production DB, migration hay installer; không auto import/move dev DB.
 - **Objective:** Dựng bộ khung chạy được tối thiểu cho 3 lớp (Backend FastAPI, Desktop Shell PySide6, Frontend TypeScript/Vite/Three.js 9:16) kèm bảo mật loopback cơ bản và bộ test tự động.
 - **Scope:** Chỉ bao gồm: Environment bootstrap, Python environment (`.venv`), Application Core, Configuration, Logging (có redaction), FastAPI Foundation (loopback `127.0.0.1`, `TrustedHost`, restricted Origin / no wildcard CORS, khung local admin auth), Health endpoint (`GET /api/v1/health`), SQLite smoke test (`WAL` + `FK ON`), PySide6 Desktop Shell (Dark/Purple, trạng thái Backend Unavailable, các tab GD02+ gắn nhãn placeholder rõ ràng), TypeScript/Vite/Three.js Foundation, Procedural placeholder scene `9:16`, Automated tests và Development scripts.
 - **Dependencies:** `GD00`.
@@ -41,6 +44,7 @@
 - **Out-of-scope requirements:** **Không** triển khai full database schema / Alembic migrations (`GD02`); **không** triển khai Application Services (`GD02`); **không** triển khai Game Plugin Engine hoặc `cultivation_online` skeleton (`GD05`); **không** triển khai Asset Library/Importer (`GD07`); không Meshy/Tripo/AI Asset Generator, không TikTok thật, không cloud/payment.
 
 ### GD02 – Database & Application Services
+- **ADR-021 persistence acceptance:** First run tạo local DB/schema version + seed default application/game config/trusted metadata, zero players/history/test accounts. Existing DB kiểm tra compatibility, migration giữ dữ liệu qua restart/update/live mới; không version-based reset/sample overwrite. Independent device/user DBs, local consistent backup trước migration, từ chối network/cloud-sync DB; không cross-device restore bắt buộc. Compatible game-schema integration tiếp tục theo plugin/game phases; không làm gameplay sớm.
 - **Objective:** Thiết lập hệ thống CSDL SQLite hoàn chỉnh với cơ chế **database-wide single-writer serialization**, Alembic migrations cho 14 bảng Platform và lớp Application Services + Repository pattern.
 - **Scope:** `Database Manager` (centralized write coordinator / bounded write queue đảm bảo tối đa 1 write transaction toàn DB tại một thời điểm, WAL, FK ON, busy timeout, transaction timeout, graceful shutdown & rollback), Alembic (`render_as_batch=True`), 14 bảng Platform, `Application Services`, `Player Persistence` cơ bản, áp dụng local admin auth trên toàn bộ REST endpoints quản trị.
 - **Dependencies:** `GD01`.
@@ -194,6 +198,7 @@
 - **Out-of-scope requirements:** Không tự động streaming RTMP trực tiếp từ Python (OBS/TikTok LIVE Studio đảm nhiệm encoding/RTMP).
 
 ### GD19 – Performance & Reliability *(gắn `TT-GD08` phần 3)*
+- **ADR-021 multi-hardware acceptance:** Benchmark nhiều Windows PC/CPU/GPU, bao gồm GPU không NVIDIA. Chốt graphics presets, LOD, texture quality, character visibility budget, WebGL capability/fallback từ số đo từng máy; không lấy RTX 4050 làm requirement cứng. Kiểm tra Windows restart persistence khi đã có gameplay.
 - **Objective:** Đo đạc thực tế, tối ưu hóa và chứng minh độ ổn định dài hạn (**phiên chạy liên tục 4 giờ**) cùng khả năng đáp ứng các mục tiêu benchmark MVP (`1080×1920`, `30 FPS`, `100` concurrent active players, single `WebGLRenderer`, tối đa `1` PiP, LOD, resource disposal) với OBS capture.
 - **Scope:** `Analytics` benchmark exporter, kịch bản benchmark `1 / 20 / 50 / 100` nhân vật (`p50/p95 frame time`, draw calls, queue depth, event latency), tối ưu LOD/animation throttling/VFX pooling/resource disposal, burst test `100 lệnh/s` trong 30s, **4-hour continuous session soak test** kèm giám sát liên tục **CPU, RAM, GPU và VRAM (Total vs Available)**.
 - **Dependencies:** `GD13`, `GD14`, `GD15`, `GD16`, `GD18`.
@@ -204,11 +209,11 @@
 
 ### GD20 – Windows Packaging & MVP Release *(gắn `TT-GD08` phần 4)*
 - **Objective:** Đóng gói ứng dụng Windows Desktop hoàn chỉnh, dễ cài đặt/chạy local, thực hiện hồi quy toàn bộ AC01–AC18 và phát hành MVP v1.0.0.
-- **Scope:** Build pipeline đóng gói Python Backend + PySide6 Desktop + built `frontend/dist` + placeholder/validated assets, khởi động/tắt tiến trình con không để orphan process, hướng dẫn vận hành cho Host, backup/restore DB tool, bộ kiểm thử hồi quy tổng thể.
+- **Scope:** Windows Installer/bundle Python runtime + Backend + PySide6 Desktop + built `frontend/dist` + placeholder/validated assets; end user không cần Python/Node/Git/Blender/Codex/Antigravity. Khởi động/tắt owned processes, user-local paths, hướng dẫn Host, local pre-migration safety backup, regression tổng thể. Backup/restore xuyên thiết bị không bắt buộc MVP.
 - **Dependencies:** `GD01`–`GD19`.
 - **Deliverables:** Gói bản dựng Windows local-first, Release Notes, `docs/GD20_RELEASE_REPORT.md` phân loại rõ `PASS/FAIL/SKIP/NOT RUN/BLOCKED` cho từng AC01–AC18.
 - **Acceptance criteria:** Toàn bộ AC01–AC18 đạt `PASS` cho bản live (nếu chưa qua GD17 hoặc thiếu asset production thì phát hành trạng thái `PARTIAL / SIMULATOR-READY MVP` trung thực); khởi chạy sạch trên thư mục mới và thoát không còn tiến trình treo.
-- **Test requirements:** Clean-directory install/run smoke test, full regression suite, shutdown orphan-process audit.
+- **Test requirements:** Clean-machine install/run không developer tools; install-directory relocation/readonly Program Files, actual Windows user-profile isolation, Unicode/dấu cách; fresh zero-player DB, compatible app/game update giữ dữ liệu; scan installer không development DB/test accounts/.env/credentials; không mandatory cloud dependency; full regression và owned-process shutdown audit. Đây là GD20 acceptance, chưa PASS ở GD01.
 - **Out-of-scope requirements:** Không auto-updater cloud, không telemetry gửi ra ngoài internet, không cổng thanh toán.
 
 ---

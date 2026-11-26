@@ -4,6 +4,19 @@ Mọi thay đổi đáng chú ý của dự án được ghi nhận tại đây 
 
 ---
 
+## [0.1.0-gd01-standalone] - 2026-11-26
+
+### Architecture / scope clarification
+- ADR-021 chốt Standalone Local-first Windows Desktop: độc lập theo thiết bị/Windows user, TikTok identity và progression chỉ trong local DB/game/world; supersede các đề xuất Hybrid Cloud cũ, giữ lịch sử ADR.
+- Cập nhật AGENTS, README, PROJECT_SPEC, ARCHITECTURE, ROADMAP, PROJECT_STATUS, TDD, DATABASE_DESIGN, GD01_SCOPE, TESTING_POLICY và DECISIONS. Không thay schema/gameplay/API version; DATABASE_DESIGN 1.0.1 là documentation clarification.
+- First-run/default seed/zero-player DB và data-preserving migrations thuộc GD02; no developer DB/test accounts/.env/credentials trong installer, bundled runtime/end-user portability GD20. Không Cloud requirements/GD21–GD26; multi-hardware/non-NVIDIA acceptance GD19. Reset game là deferred design; cross-device backup/restore không bắt buộc MVP.
+
+### Foundation
+- Mặc định `%LOCALAPPDATA%\LiveGameStudio` thay cho checkout data/logs; tách database/config/assets/cache/logs, giữ explicit local dev overrides và không auto move/import DB cũ. Chặn UNC/mapped network paths; thêm smoke/Unicode/path-isolation/relocation tests, không implement production initialization/migrations.
+- Kết quả test và independent contract review ghi tại `docs/GD01_ARCHITECTURE_UPDATE_REPORT.md`; không tái sử dụng PASS baseline để nhận các chức năng GD02/GD20 đã hoàn tất.
+
+---
+
 ## [0.1.0-gd01-foundation] - 2026-11-26
 
 ### Added

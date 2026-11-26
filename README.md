@@ -4,9 +4,15 @@
 
 > **Trạng thái hiện tại:** `GD01 – Platform Foundation` (branch `integration/gd01`). Backend, Desktop và procedural WebGL preview đã triển khai; chờ review độc lập để chốt acceptance. Tu Tiên Online chưa có gameplay.
 
+**Deployment decision (ADR-021):** Standalone Local-first Windows Desktop, cài trên nhiều máy nhưng mỗi thiết bị/Windows user có database và thế giới độc lập. Không Hybrid Cloud, cloud player identity/save hoặc đồng bộ nhân vật. Cùng TikTok viewer trên máy mới bắt đầu lại nếu local DB chưa có người này. Session mới/restart/update tương thích trên cùng DB giữ dữ liệu. Mọi đề xuất Hybrid Cloud cũ superseded; roadmap giữ GD00–GD20.
+
+User data mặc định `%LOCALAPPDATA%\LiveGameStudio`, tách `database/`, `config/`, `assets/`, `cache/`, `logs/` khỏi thư mục cài đặt. GD01 hiện chỉ có `database/smoke.sqlite3`; production first-run schema/default seeds/zero-player DB/migrations thuộc GD02. Không copy/move tự động DB smoke cũ trong checkout; muốn dùng lại cho dev phải cấu hình path local tường minh. Không dùng network share hoặc cloud-sync folder làm DB.
+
+Windows Installer GD20 sẽ bundle Python runtime và frontend production resources: **end user không cần Python, Node.js, Git, Blender, Codex hay Antigravity**. Lệnh dưới đây dành cho developer GD01, chưa là installer. Không đóng gói developer database, test data, `.env` hoặc credentials. Hỗ trợ nhiều CPU/GPU, không bắt buộc NVIDIA; graphics presets/LOD/texture/visibility budget và benchmark đa máy theo phase GD09/GD19.
+
 ## Chạy foundation trên Windows
 
-Yêu cầu Python 3.11, Node.js và npm. Chạy PowerShell tại thư mục repository:
+Môi trường developer yêu cầu Python 3.11, Node.js và npm. Chạy PowerShell tại thư mục repository:
 
 ```powershell
 .\scripts\check_environment.ps1
@@ -22,7 +28,7 @@ Desktop tự khởi chạy backend `127.0.0.1:8765` và runtime `127.0.0.1:5173`
 
 Lệnh kiểm thử gồm pytest, Ruff, build TypeScript/Vite, Vitest, browser WebGL E2E, GUI/QWebEngine thật và PowerShell start/stop smoke. `-WithBrowser` cài Chromium dành cho Playwright; GUI smoke cần phiên Windows Desktop đang hoạt động.
 
-Có thể sao chép `.env.example` thành `.env` để đổi cấu hình `LGS_*`. Path tương đối được resolve từ repository, không phụ thuộc working directory. `.env`, logs, database, `.venv`, `node_modules`, `runtime` và build output được Git bỏ qua. Dependency đã kiểm chứng nằm trong `requirements.lock` và `frontend/package-lock.json`.
+Có thể sao chép `.env.example` thành `.env` để đổi cấu hình `LGS_*`. Default writable paths nằm dưới user root ở trên; `LGS_DATA_DIR` đổi root, các override `LGS_DB_PATH/LOG_DIR/CONFIG_DIR/ASSET_DIR/CACHE_DIR` đổi từng path. Override tương đối local dành cho dev được resolve từ repository, không phụ thuộc working directory. UNC/mapped network drives bị chặn; không đặt DB trong Program Files/cloud-sync folder. `.env`, logs, database, `.venv`, `node_modules`, `runtime` và build output không commit. Dependency đã kiểm chứng nằm trong `requirements.lock` và `frontend/package-lock.json`.
 
 Chạy riêng từng lớp bằng `start_backend.ps1`, `start_runtime.ps1`, rồi `start_desktop.ps1 -ConnectBackend -ConnectRuntime`; Desktop không dừng các service được kết nối theo chế độ này. Service chạy riêng dừng bằng Ctrl+C tại terminal của nó.
 

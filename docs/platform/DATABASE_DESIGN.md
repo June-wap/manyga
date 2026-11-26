@@ -2,13 +2,13 @@
 
 **Hệ quản trị CSDL:** SQLite 3 (WAL mode, Foreign Keys ON)  
 **ORM & Migration:** SQLAlchemy 2.x + Alembic (`render_as_batch=True`)  
-**Phiên bản:** 1.0.0 (GD00 Baseline — chưa thực thi migration production trong GD00)
+**Phiên bản:** 1.0.1 (ADR-021 clarification: device-local persistence; không đổi schema 1.0.0, chưa có production migrations GD01)
 
 ---
 
 ## 1. Nguyên tắc thiết kế & Cô lập dữ liệu (Data Ownership & Multi-Game Isolation)
 
-1. **Một tệp SQLite cục bộ duy nhất, một tiến trình ghi duy nhất (`ADR-014`):** Chỉ FastAPI Backend mở kết nối ghi vào `data/livegame_studio.db`.
+1. **Một tệp SQLite cục bộ cho mỗi thiết bị + Windows user, một tiến trình ghi duy nhất (`ADR-014`, `ADR-021`):** Chỉ FastAPI Backend mở kết nối ghi vào `%LOCALAPPDATA%\LiveGameStudio\database\livegame_studio.db` (production GD02+). GD01 chỉ dùng DB riêng `database/smoke.sqlite3`, không phải production DB. Không shared network/cloud-sync DB, remote DB hoặc replication.
 2. **Phân tách Schema theo Namespace (100+ Game Extensibility):**
    - **Platform Core Tables (14 bảng, không có tiền tố game):** Do `core/` và `modules/` sở hữu toàn quyền ghi. Mọi game chỉ đọc hoặc gọi qua Platform Services.
    - **Game-Specific Tables (`g_<plugin_id>_*`):** Mỗi mini game chỉ sở hữu bảng mang tiền tố định danh riêng (ví dụ `GAME001` dùng `g_cultivation_*`, `GAME002` tương lai dùng `g_bar_*`). Cấm game này truy vấn trực tiếp bảng `g_*` của game khác.
@@ -375,7 +375,7 @@ erDiagram
 |---|---|---|
 | `tt_worlds` | `game_sessions.world_scope` + `application_settings` | Scope world/channel được quản lý đồng nhất ở tầng Platform |
 | `tt_sessions` | `game_sessions` (`plugin_id='cultivation_online'`) | Không tạo trùng bảng session |
-| `tt_profiles` | `players` + `external_identities` + `player_game_profiles` + `g_cultivation_characters` | Tách định danh toàn cục khỏi nhân vật riêng từng game |
+| `tt_profiles` | `players` + `external_identities` + `player_game_profiles` + `g_cultivation_characters` | Định danh dùng chung trong cùng local DB; nhân vật riêng theo plugin/world, không cloud global profile |
 | `tt_progress` | `g_cultivation_progress` + `g_cultivation_realm_history` | Bổ sung lịch sử cảnh giới để kiểm chứng và phân tích |
 | `tt_inventory` | `g_cultivation_inventory` | Giữ nguyên `UK(profile_id, item_id)` và `quantity >= 0` |
 | `tt_events` | `scheduled_events` + `g_cultivation_boss_events` | Lịch chung ở Platform; dữ liệu chiến đấu Boss ở bảng riêng GAME001 |
@@ -390,12 +390,22 @@ erDiagram
 ## 6. Chiến lược Migration, Transaction, Idempotency & Crash Recovery
 
 ### 6.1 Migration Strategy (Alembic)
+- **First-run / upgrade policy (`ADR-021`, implementation GD02):**
+  - Chưa có DB: tạo user-local directories/DB, apply schema migrations tương ứng bản phần mềm, seed default application settings + default game configs + trusted built-in metadata. Chỉ seed metadata của các game được phân phối đã qua trusted checks; game tables/config bổ sung theo đúng phase/plugin migrations, không làm trước gameplay GD05/GD11.
+  - Fresh DB phải có **0 player/viewer profiles, characters, progression, inventory, reward history, prior sessions/leaderboards và developer test accounts**. Test fixtures/dev DB không phải installer seed.
+  - Đã có DB: đọc schema version/compatibility, backup local nhất quán, migrate transaction-safe và giữ dữ liệu. Không reset vì đổi app/game version, không copy đè DB mẫu. Migration lỗi/DB mới hơn hoặc không tương thích: rollback/báo lỗi, giữ nguyên DB; không delete-and-recreate.
+  - App/Windows restart, kết thúc live hoặc live session mới trên cùng DB không tạo world mới/reset nhân vật. TikTok identity unique keys chỉ có ý nghĩa trong DB này, progression tiếp tục cách ly bởi `player_game_profiles(plugin_id, world_scope)`; viewer cùng ID ở máy B có profile mới nếu DB B chưa có dữ liệu.
+  - Không tự import DB từ máy khác, hardware fingerprint hoặc cross-device backup/restore bắt buộc. Local pre-migration safety backup không phải đồng bộ/restore xuyên thiết bị.
 - Sử dụng Alembic với `render_as_batch=True` bắt buộc để hỗ trợ `ALTER TABLE` an toàn trên SQLite.
 - Nhánh revision rõ ràng:
   - Migration nền tảng (`0001_platform_core`, `0002_assets_and_events`, ...) tạo 14 bảng Platform tại `GD02`–`GD07`.
   - Migration của từng plugin đặt tên có tiền tố plugin (`0010_g_cultivation_init`, ...) tại `GD11`–`GD15`.
 - Tự động sao lưu tệp DB (`backups/pre_migrate_<timestamp>.db`) trước khi chạy `alembic upgrade head`.
 - **GD00 tuyệt đối không thực thi migration production.**
+- **GD01 cũng không thực thi production migrations/seed; chỉ SQLite smoke foundation và kiểm thử portable paths.**
+
+### 6.1.1 Local game reset design (deferred, không GD01)
+Reset cần explicit confirmation, scope theo plugin/world và audit log. Phải giữ game/world khác, application settings ngoài scope, production asset files; không xóa whole DB để reset một game. Phải xác định rõ quan hệ reward/audit/shared players và retention trước implementation tại phase quản trị game phù hợp; giữ ADR-012, không tự thêm reset API GD01.
 
 ### 6.2 Ranh giới Transaction & Database-Wide Single Writer (`HIGH-003`)
 *(Thiết kế tại GD00; triển khai Centralized Write Coordinator tại GD02)*

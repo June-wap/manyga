@@ -41,6 +41,9 @@ Mọi agent phải tuân thủ tuyệt đối các giới hạn sau:
 6. **Phân tách Platform vs Game Plugin:**
    - `core/` và `modules/` **tuyệt đối không import** từ `games/*`.
    - `games/cultivation_online/` chỉ gọi Platform qua contract (`GamePlugin`, Application Services, Event/Camera/Overlay/Asset interfaces).
+7. **Standalone Local Desktop (`ADR-021`):** Phân phối trên nhiều Windows PC, mỗi thiết bị và Windows user vận hành độc lập với SQLite riêng. Không Hybrid Cloud, cloud identity/save/auth/analytics, replication, subscription hoặc cloud dependency bắt buộc; mọi đề xuất Hybrid Cloud cũ là superseded. Không bổ sung GD21–GD26.
+8. **Device-local persistence:** TikTok User ID chỉ định danh trong local DB/world; không khôi phục nhân vật từ máy khác. First run chỉ seed schema/default settings/game configs/trusted metadata, không seed player/test data. App/Windows restart, live session mới và update tương thích phải giữ dữ liệu; không reset DB theo app version, không copy đè DB mẫu. Full initialization/migrations ở GD02, không GD01.
+9. **Portable paths & distribution:** Installation/resources tách khỏi `%LOCALAPPDATA%\LiveGameStudio` (DB/config/assets/cache/logs của user). Không DB trong Program Files/network share/cloud-sync folder, không hardcode máy dev, không yêu cầu admin khi chạy, hỗ trợ Unicode/dấu cách. GD20 bundle runtimes/resources, không phân phối developer DB/secrets/.env. Không bắt buộc NVIDIA; benchmark nhiều máy ở GD19. Giữ nguyên ownership Codex/Antigravity.
 
 ---
 

@@ -7,6 +7,22 @@
 
 ## 1. Tổng quan kiến trúc (High-Level Architecture)
 
+### Standalone deployment boundary — ADR-021 (2026-11-26)
+
+Toàn bộ topology dưới đây được nhân bản **độc lập** cho từng Windows PC/user: Desktop + loopback Backend + Renderer + local SQLite. Không máy nào là cloud server/authority cho máy khác; không shared game state, cloud player identity hay cross-device replication. Hybrid Cloud cũ **SUPERSEDED**; không có cloud dependency bắt buộc.
+
+```text
+PC A / Windows user A: Desktop → loopback Backend → DB A → local game/world A
+PC B / Windows user B: Desktop → loopback Backend → DB B → local game/world B
+                      Không kết nối DB A ↔ DB B
+```
+
+TikTok ID được map vào player trong local DB, rồi vào profile theo plugin/world. Cùng viewer không thừa hưởng progression của DB khác. Session/livestream mới trên cùng DB giữ nhân vật; đổi app/game version tương thích dùng migration, không reset. First run chỉ schema/default config/trusted metadata, không demo/test players. Quy trình GD02, không implementation GD01.
+
+Installation chứa code/bundled resources readonly; `%LOCALAPPDATA%\LiveGameStudio` chứa dữ liệu writable của Windows user. Tách `database/`, `config/`, `assets/`, `cache/`, `logs/`; không ghi DB vào Program Files hoặc network/cloud-sync folder. Không dùng fingerprint để chọn DB, không auto import DB từ thiết bị khác. GD20 bundle Python + frontend build thay cho dev Python/Node/Vite dependencies; không bundle DB phát triển/.env/credentials. Local authenticated TikTok integration ở GD17 là nguồn event được cấp quyền, không biến thành cloud storage/auth platform.
+
+Trusted local game management giữ ADR-010/Asset Contract; package ngoài chưa có loader MVP. Reset theo game là destructive operation cần confirmation + audit, không xóa game khác/settings ngoài phạm vi/production assets và không implement GD01. Benchmark GD19 nhiều máy/CPU/GPU, graphics presets/LOD/texture budget/visibility budget/capability detection và fallback; NVIDIA không bắt buộc.
+
 LiveGame Studio chạy cục bộ trên máy Windows của người vận hành livestream, bao gồm 3 khối tiến trình/lớp phối hợp qua loopback (`127.0.0.1`):
 
 1. **Backend Modular Monolith (Python + FastAPI + SQLite):** Nguồn sự thật duy nhất (Single Source of Truth) về cấu hình, plugin, simulation tick, sự kiện, người chơi, tài nguyên, sổ cái thưởng và lưu trữ.

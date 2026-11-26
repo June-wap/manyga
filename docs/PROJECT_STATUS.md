@@ -6,7 +6,9 @@
 
 **Giai đoạn hiện tại:** `GD01 – Platform Foundation`
 
-**Trạng thái tổng thể GD01:** `PARTIAL — IMPLEMENTATION VERIFIED, INDEPENDENT REVIEW NOT RUN`. 37 automated tests PASS; real Desktop/QWebEngine, PowerShell start/stop và kiểm tra không orphan PASS. Chờ review độc lập trước khi chốt phase gate; xem `docs/GD01_DELIVERY_REPORT.md`.
+**Deployment decision:** `ADR-021 — STANDALONE LOCAL DESKTOP`, mỗi thiết bị/Windows user độc lập, Hybrid Cloud cũ superseded. GD01 tiếp tục; GD02 schema/seed/migrations và GD20 installer chưa triển khai. Xem `docs/GD01_ARCHITECTURE_UPDATE_REPORT.md` cho trạng thái kiểm thử/review của cập nhật portability, phân biệt với kết quả baseline bên dưới.
+
+**Trạng thái tổng thể GD01:** `PARTIAL — IMPLEMENTATION VERIFIED, INDEPENDENT REVIEW PENDING`. Regression sau ADR-021: 47 automated tests PASS (41 pytest + 3 Vitest + 3 Playwright); real Desktop/QWebEngine, PowerShell start/stop và không orphan PASS. Delta contract review Antigravity đã thử nhưng `BLOCKED` bởi quyền command của CLI headless; full GD01 independent acceptance vẫn NOT RUN. Chờ review trước khi chốt phase gate.
 **Trạng thái tổng thể GD00:** `PASS — READY FOR GD01 APPROVAL (GD00 + GD00-FIX01 + GD00-FIX02 COMPLETE)` *(toàn bộ 6 HIGH, 4 MEDIUM và 1 LOW design findings đã được kiểm chứng và giải quyết tại `docs/GD00_INDEPENDENT_REVIEW.md` và `docs/GD00_FIX02_REPORT.md`)*
 
 ---
@@ -16,7 +18,7 @@
 | Giai đoạn | Tên | Trạng thái | Ghi chú |
 |---|---|---|---|
 | **GD00** | Project Design & Initialization (`+ FIX01 + FIX02`) | **COMPLETED (Design Review Findings Resolved)** | Toàn bộ 24 tài liệu nền tảng + `GD01_SCOPE.md` + `GD00_INDEPENDENT_REVIEW.md` + `GD00_FIX02_REPORT.md` trên `design/gd00` |
-| GD01 | Platform Foundation | `IMPLEMENTED / REVIEW PENDING` | 31 pytest + 3 Vitest + 3 Playwright PASS; GUI/embedded WebGL/owned shutdown PASS; nhánh `integration/gd01` |
+| GD01 | Platform Foundation | `IMPLEMENTED / REVIEW PENDING` | Sau ADR-021: 41 pytest + 3 Vitest + 3 Playwright PASS; GUI/WebGL/owned shutdown PASS; delta review BLOCKED, full independent acceptance pending |
 | GD02 | Database & Application Services | `NOT STARTED` | Phụ thuộc GD01 |
 | GD03 | Desktop Shell & Game Master UI | `NOT STARTED` | Phụ thuộc GD01–GD02 |
 | GD04 | Event Gateway & Simulator | `NOT STARTED` | Phụ thuộc GD02 |
@@ -52,3 +54,4 @@
 1. Review độc lập GD01 theo hướng dẫn tại `docs/GD01_DELIVERY_REPORT.md`, đối chiếu đúng 13 mục `GD01_SCOPE.md`; chưa bắt đầu GD02.
 2. GD00 gate: đã đọc final review `PASS / READY_FOR_GD01` tại `592db85`. Tệp final review chưa commit sau đó không còn trong workspace; chủ dự án xác nhận trong chat dùng kết luận PASS đã đọc và ghi rõ ở báo cáo. Không tái tạo hoặc tự nhận là tác giả của review gốc.
 3. Không tự push hoặc merge. Nhánh bàn giao theo yêu cầu task là `integration/gd01`.
+4. Đối chiếu ADR-021: default user-local paths và smoke foundation GD01; first-run zero-player production DB/migration preservation GD02, multi-hardware benchmark GD19, actual multi-user Windows installer/relocation/update GD20. Không mở cloud scope/GD21–GD26, không thay ownership hoặc GDD.

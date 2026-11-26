@@ -103,3 +103,15 @@ Một giai đoạn `GDxx` chỉ được đề xuất chuyển tiếp sang `GD(x
 2. Toàn bộ test trong phạm vi giai đoạn đã chạy thực tế (không để `NOT RUN` mà không có lý do `BLOCKED` chính đáng).
 3. Regression suite của các giai đoạn trước vẫn `PASS`.
 4. Có đủ `docs/GDxx_DELIVERY_REPORT.md` và review độc lập từ Antigravity.
+
+## 6. Standalone / persistence / portability acceptance (`ADR-021`)
+
+| Phase | Kiểm thử bắt buộc | Phạm vi trung thực |
+|---|---|---|
+| GD01 | Per-user default paths tách installation; Unicode/dấu cách; configured local roots độc lập; smoke commit/reopen giữ dữ liệu; installation-root relocation không đổi default DB; reject network paths; không mandatory cloud dependency | Dùng temp roots mô phỏng user profiles; không gọi là actual multi-user Windows/installer PASS |
+| GD02 | First-run schema version/init; seed defaults/trusted metadata; fresh DB zero viewer/player/characters/progression/inventory/rewards/sessions/leaderboards/test accounts; independent DB files; migration preservation, rollback, newer-schema refusal; local DB không network/cloud-sync path | Full production DB tests, không thay bằng GD01 smoke tables |
+| GD11–GD15 | Same viewer identity cách ly theo DB và plugin/world; progress giữ qua app restart/live mới; compatible game-version migration giữ dữ liệu | Theo từng phase gameplay, không seed fake accounts trong DB phân phối |
+| GD19 | Benchmark trên nhiều máy CPU/GPU, có cấu hình không NVIDIA; graphics presets/LOD/texture quality/visibility budgets/capability/fallback; Windows restart persistence regression khi đã có gameplay | Mục tiêu, không kết luận từ một laptop hoặc unit tests |
+| GD20 | Clean Windows install không developer tools; readonly/relocated installation, actual Windows user profiles, Unicode paths; bundle runtime/frontend; update giữ DB; installer scan không dev DB/test data/.env/credentials; không mandatory cloud runtime dependency | End-user Windows sessions/installer thật; không dùng mock paths để gọi PASS |
+
+Reset dữ liệu theo game nếu sau này triển khai phải có confirmation/audit và test không ảnh hưởng game khác/settings ngoài scope/production assets. Cross-device backup/restore không bắt buộc MVP. Không thêm cloud tests/services hoặc phase GD21–GD26; mọi đề xuất Hybrid Cloud trước đây superseded. Native TikTok provider ở GD17 là external authorized input, không phải cloud save/auth requirement.

@@ -4,6 +4,8 @@
 **Nguồn thẩm quyền phạm vi giai đoạn:** `docs/ROADMAP.md` (Single Authority cho phân bổ phạm vi `GD00`–`GD20`).  
 **Trạng thái:** Design Locked — **không triển khai mã nguồn GD01 trong GD00**.
 
+**Clarification 2026-11-26 / ADR-021:** Tiếp tục GD01, không restart GD00. Standalone multi-device nghĩa là nhiều Windows PC/user độc lập, không Hybrid Cloud/cross-device sync. 13 deliverables và phase ownership giữ nguyên. GD01 configuration/path foundation dùng `%LOCALAPPDATA%\LiveGameStudio` tách installation/database/config/assets/cache/logs; test Unicode/dấu cách, simulated user-root isolation, installation-root relocation và smoke persistence. Không auto import/move DB smoke cũ. Full first-run schema/default seeds/zero-player acceptance/migration preservation GD02; installer/bundled resources/real Windows profiles GD20. Không triển khai các mục GD02/GD20 để đáp ứng clarification này.
+
 ---
 
 ## 1. Mục tiêu của GD01
@@ -21,7 +23,7 @@ Chỉ bao gồm đúng 13 hạng mục sau:
 | 1 | **Environment bootstrap** | Khởi tạo `.venv` riêng cho dự án (`Python 3.11+`), khóa phụ thuộc (`pyproject.toml` / `requirements.txt`), khởi tạo `frontend/package.json` + `package-lock.json` |
 | 2 | **Python environment** | Cài đặt tối thiểu `fastapi`, `uvicorn`, `pydantic`, `sqlalchemy`, `PySide6`, `httpx`, `pytest` trong `.venv` (không phụ thuộc global site-packages) |
 | 3 | **Application Core** | `core/app` — composition root, vòng đời khởi động/tắt sạch (`lifespan`), không để orphan process/handle |
-| 4 | **Configuration** | `core/config` — nạp & kiểm định cấu hình bằng Pydantic v2 (file local + biến môi trường `LGS_*`), `SecretStr` bảo vệ giá trị nhạy cảm |
+| 4 | **Configuration** | `core/config` — Pydantic v2, local dev `.env` + `LGS_*`, `SecretStr`; per-user `%LOCALAPPDATA%\LiveGameStudio` và path separation theo ADR-021, Unicode/dấu cách, explicit local dev overrides, không DB trong installation mặc định |
 | 5 | **Logging** | `core/logging` — structured logging (JSONL xoay vòng + console UTF-8), tự động redact `token`/`secret`/`password`/`authorization`/`cookie`/`api_key` |
 | 6 | **FastAPI Foundation** | `apps/backend` — bind mặc định `127.0.0.1`, `TrustedHostMiddleware`, restricted Origin policy (**cấm wildcard CORS `*`**), local admin session auth tối thiểu cho privileged endpoints |
 | 7 | **Health endpoint** | `GET /api/v1/health` (công khai cục bộ trên loopback, chỉ trả trạng thái sống tối thiểu không nhạy cảm: `ok`, `status`, `version`, `db_smoke_ok`, `uptime_s`) |
@@ -63,3 +65,4 @@ GD01 chỉ đạt `PASS` khi toàn bộ điều kiện sau được kiểm chứ
    - Các endpoint đặc quyền (nếu đã tạo khung ở GD01, ví dụ kiểm tra admin ping/config read) yêu cầu Local Admin Session Token hợp lệ và trả `401/403` khi thiếu/sai token.
    - Structured logs chứng minh đã redact các khóa nhạy cảm (`token`, `secret`, `password`, `authorization`, `cookie`, `api_key`).
 3. **Scope Hygiene:** Không có Alembic full schema (GD02), không có `games/cultivation_online/` runtime (GD05), không có Asset Library/Importer (GD07), không để orphan subprocess khi thoát ứng dụng.
+4. **Portable foundation (`ADR-021`):** Default writable DB/logs nằm ngoài installation, path Unicode/dấu cách hoạt động, hai user-root cấu hình mô phỏng dùng smoke DB độc lập; reopen không xóa dòng smoke đã commit, đổi installation root không đổi default user DB. Reject UNC/mapped network data paths; không mandatory cloud dependency. Đây không phải real two-user Windows install test, fresh production zero-player schema/migration hay installer acceptance.

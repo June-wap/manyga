@@ -11,18 +11,18 @@
     "no_orphan_descendants": "PASS"
   },
   "ports": [
-    53473,
-    53474
+    65467,
+    65468
   ],
   "gpu_flags": "none",
   "backend_binding": {
     "LocalAddress": "127.0.0.1",
-    "LocalPort": 53473,
-    "OwningProcess": 22252
+    "LocalPort": 65467,
+    "OwningProcess": 8784
   },
   "embedded_webgl": {
     "state": "running",
-    "frames": 70,
+    "frames": 73,
     "aspect": 0.5625,
     "width": 416,
     "height": 740,
@@ -37,38 +37,38 @@
   },
   "descendants": [
     {
-      "ProcessId": 30292,
+      "ProcessId": 11076,
       "Name": "python.exe"
     },
     {
-      "ProcessId": 9220,
+      "ProcessId": 25724,
       "Name": "conhost.exe"
     },
     {
-      "ProcessId": 17608,
+      "ProcessId": 17628,
       "Name": "node.exe"
     },
     {
-      "ProcessId": 13284,
+      "ProcessId": 29324,
       "Name": "conhost.exe"
     },
     {
-      "ProcessId": 22252,
+      "ProcessId": 8784,
       "Name": "python.exe"
     },
     {
-      "ProcessId": 8004,
+      "ProcessId": 29208,
       "Name": "QtWebEngineProcess.exe"
     },
     {
-      "ProcessId": 27384,
+      "ProcessId": 21724,
       "Name": "conhost.exe"
     }
   ],
   "backend_exit_code": 0,
   "owned_pids": [
-    30292,
-    17608
+    11076,
+    17628
   ],
   "process_survivors": []
 }
