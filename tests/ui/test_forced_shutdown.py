@@ -19,6 +19,13 @@ def test_forced_shutdown_cleans_owned_descendants(qtbot, settings, tmp_path):
     supervisor.backend.start(sys.executable, ["-c", code])
     qtbot.waitUntil(pid_file.exists, timeout=10000)
     child_pid = int(pid_file.read_text())
+    unrelated = subprocess.Popen(
+        [sys.executable, "-c", "import sys; sys.stdin.readline()"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
     try:
         with qtbot.waitSignal(supervisor.stopped, timeout=12000):
             supervisor.stop()
@@ -37,6 +44,7 @@ def test_forced_shutdown_cleans_owned_descendants(qtbot, settings, tmp_path):
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
         assert not (json.loads(process.stdout) if process.stdout.strip() else [])
+        assert unrelated.poll() is None, "An unrelated process was terminated"
     finally:
         if supervisor.backend.state() != QProcess.ProcessState.NotRunning:
             supervisor.force_owned_stop()
@@ -44,3 +52,4 @@ def test_forced_shutdown_cleans_owned_descendants(qtbot, settings, tmp_path):
                 lambda: supervisor.backend.state() == QProcess.ProcessState.NotRunning,
                 timeout=10000,
             )
+        unrelated.communicate(input=b"STOP\n", timeout=5)

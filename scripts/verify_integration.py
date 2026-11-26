@@ -1,6 +1,7 @@
 """Run the real GUI smoke in a process, then prove its descendants have exited."""
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -12,7 +13,10 @@ def main():
     subprocess.run(
         [sys.executable, str(ROOT / "scripts/gui_smoke.py")], cwd=ROOT, check=True, timeout=90
     )
-    evidence = ROOT / "docs/evidence/gd01/embedded-smoke.json"
+    evidence = (
+        Path(os.environ.get("LGS_EVIDENCE_DIR", ROOT / "docs/evidence/gd01"))
+        / "embedded-smoke.json"
+    )
     result = json.loads(evidence.read_text(encoding="utf-8"))
     owned = [p["ProcessId"] for p in result["descendants"]]
     query = "$trackedIds = @(" + ",".join(map(str, owned)) + "); "

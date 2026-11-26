@@ -29,7 +29,7 @@ def free_port():
 
 
 def main():
-    evidence = ROOT / "docs/evidence/gd01"
+    evidence = Path(os.environ.get("LGS_EVIDENCE_DIR", ROOT / "docs/evidence/gd01"))
     evidence.mkdir(parents=True, exist_ok=True)
     data = ROOT / "runtime/gui-smoke"
     ports = [free_port(), free_port()]

@@ -30,7 +30,7 @@ def main():
         LGS_DB_PATH=str(data / "smoke.sqlite3"),
         LGS_LOG_DIR=str(data / "logs"),
     )
-    start = ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File"]
+    start = ["powershell.exe", "-NoProfile", "-File"]
     result = {"status": "FAIL", "start_dev": "NOT RUN", "stop_dev": "NOT RUN"}
     with (data / "console.log").open("w", encoding="utf-8") as output:
         process = subprocess.Popen(
@@ -94,9 +94,9 @@ def main():
                     creationflags=subprocess.CREATE_NO_WINDOW,
                 )
                 process.wait(timeout=20)
-    (ROOT / "docs/evidence/gd01/dev-script-smoke.json").write_text(
-        json.dumps(result, indent=2), encoding="utf-8"
-    )
+    evidence = Path(os.environ.get("LGS_EVIDENCE_DIR", ROOT / "docs/evidence/gd01"))
+    evidence.mkdir(parents=True, exist_ok=True)
+    (evidence / "dev-script-smoke.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))
     return 0 if result["status"] == "PASS" else 1
 

@@ -1,4 +1,7 @@
 import { test, expect } from '../../frontend/node_modules/@playwright/test';
+import { join } from 'node:path';
+
+const evidenceDir = process.env.LGS_EVIDENCE_DIR ?? '../docs/evidence/gd01';
 
 test('real WebGL, rotation, 9:16, resize and disposal', async ({ page }) => {
   const errors: string[] = [];
@@ -24,7 +27,7 @@ test('real WebGL, rotation, 9:16, resize and disposal', async ({ page }) => {
     return values.size;
   });
   expect(colors).toBeGreaterThan(10);
-  await page.screenshot({ path: '../docs/evidence/gd01/browser-preview.png' });
+  await page.screenshot({ path: join(evidenceDir, 'browser-preview.png') });
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect.poll(async () => page.evaluate(() => {
     const d = (window as any).foundation.diagnostics(); return d.width / d.height;
@@ -66,4 +69,40 @@ test('real context loss stops animation and releases resources', async ({ page }
   const state = await page.evaluate(() => (window as any).foundation.diagnostics());
   expect(state.disposed).toBe(true);
   expect(state.released).toBe(state.resources);
+});
+
+test('static production build renders without dev client or external resources', async ({ page }) => {
+  const errors: string[] = [];
+  const requests: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  page.on('request', request => requests.push(request.url()));
+  await page.goto('http://127.0.0.1:15174');
+  await page.waitForFunction(() => (window as any).foundation?.diagnostics().frames > 4);
+  const diag = await page.evaluate(() => (window as any).foundation.diagnostics());
+  expect(diag.drawCalls).toBeGreaterThan(0);
+  expect(diag.width).toBe(1080);
+  expect(diag.height).toBe(1920);
+  expect(requests.some(url => url.includes('/assets/'))).toBe(true);
+  expect(requests.every(url => url.startsWith('http://127.0.0.1:15174/'))).toBe(true);
+  expect(requests.some(url => url.includes('@vite/client'))).toBe(false);
+  await page.screenshot({ path: join(evidenceDir, 'static-production.png') });
+  expect(errors).toEqual([]);
+});
+
+test('missing optional GPU debug extension keeps actual WebGL running', async ({ page }) => {
+  await page.addInitScript(() => {
+    for (const type of [WebGLRenderingContext, WebGL2RenderingContext]) {
+      const getExtension = type.prototype.getExtension;
+      type.prototype.getExtension = function(name: string) {
+        return name === 'WEBGL_debug_renderer_info' ? null : getExtension.call(this, name);
+      } as any;
+    }
+  });
+  await page.goto('/');
+  await page.waitForFunction(() => (window as any).foundation?.diagnostics().frames > 4);
+  const diag = await page.evaluate(() => (window as any).foundation.diagnostics());
+  expect(diag.gpuRenderer).toBe('unavailable');
+  expect(diag.state).toBe('running');
+  expect(diag.drawCalls).toBeGreaterThan(0);
 });

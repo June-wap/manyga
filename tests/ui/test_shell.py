@@ -57,3 +57,20 @@ def test_owned_backend_start_stop_and_port_conflict(qtbot, settings):
             supervisor.stop()
     assert supervisor.backend.exitCode() == 0
     assert supervisor.backend.state() == QProcess.ProcessState.NotRunning
+
+
+def test_connect_mode_leaves_external_backend_running(qtbot, settings, managed_backend):
+    with managed_backend() as external:
+        settings.backend_port = external.port
+        supervisor = Supervisor(settings, own_backend=False, own_runtime=False)
+        states = []
+        supervisor.backend_status.connect(lambda state, data: states.append(state))
+        supervisor.start()
+        try:
+            qtbot.waitUntil(lambda: "Connected" in states, timeout=5000)
+        finally:
+            with qtbot.waitSignal(supervisor.stopped, timeout=5000):
+                supervisor.stop()
+        assert external.process.poll() is None
+        assert external.client.get("/api/v1/health").status_code == 200
+    assert external.exit_code == 0
