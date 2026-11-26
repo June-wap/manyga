@@ -1,0 +1,131 @@
+# =============================================================================
+# LiveGame Studio — .gitignore
+# Tech stack: Python, FastAPI, PySide6, TypeScript, Vite, Three.js, SQLite,
+#             Windows Desktop, External Blender Asset Production
+# =============================================================================
+
+# --- Secrets & Environment ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials*.json
+*token*.json
+
+# --- Local Databases & Runtime Data ---
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+data/
+logs/
+*.log
+backups/
+runtime/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+.tox/
+.nox/
+
+# --- Node.js / TypeScript / Vite ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+*.tsbuildinfo
+
+# --- Blender & Heavy Raw Production Assets ---
+# Keep manifests, prompts, and docs tracked; exclude heavy working files & caches
+*.blend
+*.blend1
+*.blend2
+*.blend@
+*.fbx
+*.obj
+*.mtl
+*.psd
+*.kra
+*.spp
+*.sbsar
+*.exr
+*.hdr
+*.tga
+*.tif
+*.tiff
+asset_production/raw/
+asset_production/exports/
+asset_production/cache/
+assets/imported/
+assets/cache/
+
+# --- Packaging & Installers ---
+*.exe
+*.msi
+*.msix
+*.spec
+pyinstaller_build/
+release/
+
+# --- Windows & OS ---
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+.DS_Store
+
+# --- IDEs & Editors ---
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+*.tmp
+*.bak
